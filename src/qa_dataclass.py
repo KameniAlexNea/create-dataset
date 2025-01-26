@@ -1,5 +1,7 @@
-from typing import List, Union
+from typing import List
+
 from pydantic import BaseModel, Field
+
 
 class AnswerChoice(BaseModel):
     letter: str = Field(
@@ -27,10 +29,12 @@ class Question(BaseModel):
         description="Factual detailed explanation of why the marked answers are correct",
     )
 
+
 class MCQBank(BaseModel):
     questions: List[Question] = Field(
         description="Collection of all questions in the question bank"
     )
+
 
 class QuestionAnswer(BaseModel):
     question_text: str = Field(

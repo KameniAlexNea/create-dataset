@@ -1,9 +1,10 @@
+import os
 import re
 import string
-import os
 from glob import glob
 
 punctuation = "?!."
+
 
 def merge_sentences(sentence: str):
     sentences = sentence.strip().split("\n")

@@ -2,7 +2,6 @@ from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
-from .qa_dataclass import QuestionBank
 
 
 class ChatLLMType:
@@ -10,6 +9,7 @@ class ChatLLMType:
     OLLAMA = "ollama"
     OPENAI = "openai"
     XAI = "xai"
+
 
 class ChatLLM:
     def __init__(self, chat_type: ChatLLMType):
@@ -24,8 +24,6 @@ class ChatLLM:
         else:
             raise ValueError("Invalid chat type")
         self.chat.with_structured_output()
-        
-        
+
     def invoke(self, prompt):
         return self.chat.invoke(prompt)
-    

@@ -1,4 +1,3 @@
-
 system = """
 You are tasked with creating educational and engaging question-and-answer pairs about African history. These should be accessible to anyone with a foundational knowledge of African history while relying on the provided context. Your goal is to craft a single question and a concise, accurate answer, ensuring the information is both informative and engaging.
 
