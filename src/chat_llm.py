@@ -1,8 +1,14 @@
+import os
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
 
+class ModelName:
+    ANTHROPIC = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-sonnet-20240229")
+    OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
+    OPENAI = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
+    XAI = os.getenv("XAI_MODEL_NAME", "grok-beta")
 
 class ChatLLMType:
     ANTHROPIC = "anthropic"
@@ -10,20 +16,33 @@ class ChatLLMType:
     OPENAI = "openai"
     XAI = "xai"
 
+class QuestionType:
+    MCQ = "mcq"
+    QA = "qa"
 
 class ChatLLM:
-    def __init__(self, chat_type: ChatLLMType):
+    def __init__(self, chat_type: ChatLLMType, question_type: QuestionType):
         if chat_type == ChatLLMType.ANTHROPIC:
-            self.chat = ChatAnthropic()
+            chat = ChatAnthropic(model_name=ModelName.ANTHROPIC)
         elif chat_type == ChatLLMType.OLLAMA:
-            self.chat = ChatOllama()
+            chat = ChatOllama(model_name=ModelName.OLLAMA)
         elif chat_type == ChatLLMType.OPENAI:
-            self.chat = ChatOpenAI()
+            chat = ChatOpenAI(model=ModelName.OPENAI)
         elif chat_type == ChatLLMType.XAI:
-            self.chat = ChatXAI()
+            chat = ChatXAI(model=ModelName.XAI)
         else:
             raise ValueError("Invalid chat type")
-        self.chat.with_structured_output()
+        if question_type == QuestionType.MCQ:
+            from .prompts.mcq_prompt import human, system
+            from .qa_dataclass import MCQBank
+            qa_type = MCQBank
+        elif question_type == QuestionType.QA:
+            from .prompts.qa_prompt import human, system
+            from .qa_dataclass import QABank
+            qa_type = QABank
+        self.human, self.system = human, system
+
+        self.structured_llm = chat.with_structured_output(qa_type)
 
     def invoke(self, prompt):
-        return self.chat.invoke(prompt)
+        return self.structured_llm.invoke(prompt)

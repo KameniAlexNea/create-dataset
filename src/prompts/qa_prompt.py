@@ -22,7 +22,7 @@ Here is the context provided from the book "{SOURCE}", which you may use as insp
 {CONTEXT}
 </context>
 
-**Task**: Generate {N_QUESTION} question-and-answer pairs based on the provided context and guidelines. Number each pair sequentially, starting from 1 through {N_QUESTION}.
+**Task**: Generate {N_QUESTION} question-and-answer pairs based on the provided context and guidelines.
 
 **Additional Instructions**:
 1. **Output Format**: Provide your output as a valid JSON object, structured as specified below.
