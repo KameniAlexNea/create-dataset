@@ -1,35 +1,68 @@
 system = """
-You are tasked with creating multiple-choice questions (MCQs) about African history. These questions should be accessible to anyone with a foundational knowledge of African history, while primarily relying on the provided context. Your goal is to craft engaging, educational questions that assess a broad understanding of African history.
+You are tasked with creating multiple-choice questions (MCQs) based on the provided context. These questions should be engaging, educational, and accessible to anyone with a foundational knowledge of the topic. Your goal is to craft questions that assess a broad understanding of the subject while encouraging deeper thought.
 
 **Guidelines for Question Generation:**
 
-1. **Diverse Coverage**: Create questions that span various facets of African history, including significant events, influential figures, cultures, and historical periods. Emphasize the historical period when explicitly mentioned in the context, as this can impact the accuracy of answers.
-  
-2. **Contextual Relevance**: Align questions closely with the given context, ensuring that they primarily draw from this information while remaining rooted in commonly understood historical themes.
+1. **Diverse Coverage**: Create questions that explore various aspects of the provided context, including significant details, key ideas, relationships, or themes.
 
-3. **Balanced Difficulty**: Make the questions challenging yet fair, suitable for someone with a reasonable grasp of African history. Balance straightforward factual recall with questions exploring cause-and-effect relationships, historical significance, or major turning points.
+2. **Contextual Relevance**: Align questions closely with the provided context, ensuring they primarily draw from this information while remaining clear and engaging.
 
-4. **Varied Question Types**: Include a mix of question styles, such as recall-based questions, understanding of cause-effect relationships, and inquiries into the significance of events or figures. Avoid over-reliance on any one type to maintain variety and engagement.
+3. **Balanced Difficulty**: Make the questions challenging yet fair, suitable for someone with a reasonable grasp of the subject. Balance straightforward factual recall with more analytical or conceptual questions.
 
-5. **Period Emphasis**: When applicable, reference the historical period in which the event, figure, or culture was prominent. This can clarify potential dependencies on time-specific information, enhancing both historical accuracy and depth.
+4. **Varied Question Types**: Include a mix of styles, such as factual recall, cause-effect relationships, significance of concepts, or scenario-based questions. Avoid over-reliance on any one type to ensure variety and maintain interest.
+
+5. **Clear and Concise Wording**: Phrase questions and answer choices in a straightforward manner to avoid ambiguity or unnecessary complexity. Ensure clarity and precision.
+
+6. **Accurate Answer Options**: Provide up to five answer choices (A, B, C, D, and E) for each question. At least one answer must be marked as correct, and all options should be plausible and relevant.
+
+Follow at the letter the given format
+
+{FORMAT}
 """
 
 human = """
-Here is the context provided from the book "{SOURCE}", which you may use as inspiration for {N_QUESTION} questions:
+Here is the context provided, which you may use as inspiration for {N_QUESTION} multiple-choice questions:
 
 <context source="{SOURCE}">
 {CONTEXT}
 </context>
 
-**Task**: Generate {N_QUESTION} multiple-choice questions (MCQs) according to the guidelines.
+**Task**: Generate {N_QUESTION} multiple-choice questions (MCQs) based on the provided context and guidelines.
 
 **Additional Instructions**:
 1. **Output Format**: Provide your output as a valid JSON object, structured as specified below.
 2. **Language**: Write all questions and answer choices in English.
-3. **Quality and Accuracy**: Focus on factual and concise questions. Ensure that the questions reflect a thorough understanding of the provided context and African history.
-4. **Answer Options**: Include up to five answer choices (A, B, C, D, and E) for each question.
-5. **Correct Answers**: Mark at least one correct answer per question.
-6. **Question Wording**: Avoid phrasing like "According to the context" or "As mentioned in the passage"... All explanations should be factual and based on widely accepted knowledge of African history.
+3. **Quality and Accuracy**: Focus on crafting clear, factual, and concise questions with accurate answers. Ensure they reflect a thorough understanding of the provided context.
+4. **Explanation (Optional)**: If needed, include a brief explanation or justification for the correct answer to enhance understanding.
+5. **Question Wording**: Avoid phrasing like "According to the context" or "As mentioned in the passage." The questions should be clear and direct.
 
-**Reminder**: Each question and explanation should be understandable and answerable based on general understanding of the context.
+**Reminder**: Each question and explanation should be understandable and answerable based on a general understanding of the context.
 """
+
+
+FORMAT = """
+<MCQBank>
+  <Question>
+    <Text>The actual text of the question being asked</Text>
+    <Choices>
+      <AnswerChoice>
+        <Letter>A</Letter>
+        <Text>The text content of answer choice A</Text>
+      </AnswerChoice>
+      <AnswerChoice>
+        <Letter>B</Letter>
+        <Text>The text content of answer choice B</Text>
+      </AnswerChoice>
+      <!-- Add more AnswerChoices as needed -->
+    </Choices>
+    <Answer>
+      <Choice>A</Choice>
+      <Choice>C</Choice>
+    </Answer>
+    <Explanation>
+      Factual detailed explanation of why the marked answers are correct.
+    </Explanation>
+  </Question>
+  <!-- Add more Question entries as needed -->
+</MCQBank>
+""".lower()

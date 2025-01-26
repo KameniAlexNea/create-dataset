@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
 
 from .qa_dataclass import MCQBank, QABank
+from langchain_core.messages import BaseMessage
 
 
 class ModelName:
@@ -46,17 +47,15 @@ class ChatLLM:
         else:
             raise ValueError("Invalid chat type")
         if question_type == QuestionType.MCQ:
-            from .prompts.mcq_prompt import human, system
-
-            qa_type = MCQBank
+            from .prompts.mcq_prompt import human, system, FORMAT
+            # qa_type = MCQBank
         elif question_type == QuestionType.QA:
-            from .prompts.qa_prompt import human, system
-
-            qa_type = QABank
-        self.human, self.system = human, system
+            from .prompts.qa_prompt import human, system, FORMAT
+            # qa_type = QABank
+        self.human, self.system = human, system.format(FORMAT=FORMAT)
         self.n_questions = n_questions
 
-        self.structured_llm = chat.with_structured_output(qa_type, include_raw=True)
+        self.structured_llm = chat # .with_structured_output(qa_type, include_raw=True)
 
     def prepare(self, context, source: str, n_questions: int) -> str:
         return [
@@ -71,24 +70,25 @@ class ChatLLM:
 
     def invoke(
         self, prompt: str, source: str = None, n_questions: int = None
-    ) -> Union[MCQBank, QABank]:
+    ) -> str:
         source = source if source else "africa history"
         return self.structured_llm.invoke(
             self.prepare(prompt, source, n_questions or self.n_questions)
-        )
+        ).content
 
     def batch_invoke(
         self, prompts: list[str], sources: list[str] = None, n_questions: int = None
-    ) -> list[Union[MCQBank, QABank]]:
+    ) -> list[str]:
         sources = sources if sources else ["africa history"] * len(prompts)
-        return self.structured_llm.batch(
+        results = self.structured_llm.batch(
             [
                 self.prepare(prompt, source, n_questions or self.n_questions)
                 for prompt, source in zip(prompts, sources)
             ]
         )
+        return [result.content for result in results]
 
-    def get_content(self, file_path: str) -> str:
+    def _get_content(self, file_path: str) -> str:
         with open(file_path, "r") as file:
             context = file.read()
             root, _ = os.path.splitext(file_path)
@@ -97,16 +97,15 @@ class ChatLLM:
 
     def invoke_from_file(
         self, file_path: str, n_questions: int = None
-    ) -> Union[MCQBank, QABank]:
-        with open(file_path, "r") as file:
-            context, source = self.get_content(file_path)
-            return self.invoke(context, source, n_questions)
+    ) -> str:
+        context, source = self._get_content(file_path)
+        return self.invoke(context, source, n_questions)
 
     def batch_invoke_from_files(
         self, file_paths: list[str], n_questions: int = None
-    ) -> list[Union[MCQBank, QABank]]:
+    ) -> list[str]:
         contexts, sources = zip(
-            *[self.get_content(file_path) for file_path in file_paths]
+            *[self._get_content(file_path) for file_path in file_paths]
         )
         return self.batch_invoke(contexts, sources, n_questions)
 
