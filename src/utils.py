@@ -1,4 +1,5 @@
 import os
+import random
 import re
 import string
 from glob import glob
@@ -68,4 +69,34 @@ def get_dataset(folder: str):
     data = [open(file).read() for file in files]
 
     data = [merge_sentences(i) for i in data if is_valid_file(i)]
-    return sorted(data)
+    return data
+
+
+def select_pages(pages, n, m):
+    if not pages:
+        return []
+    pages = sorted(pages)
+
+    results = []
+    selected_pages = set()
+
+    sample_pages = random.sample(pages, min(n * 3, len(pages)))
+    for start_index in sample_pages:
+        consecutive_pages = pages[start_index : start_index + m]
+
+        # Check for overlap
+        if all(page not in selected_pages for page in consecutive_pages):
+            results.append(consecutive_pages)
+            selected_pages.union(consecutive_pages)
+
+        # Exit if we have enough results
+        if len(results) >= n:
+            break
+    return results
+
+
+def choose_context_pages(folder: str, n_questions: int, n_range: int):
+    files = sorted(glob(os.path.join(folder, "*.txt")))
+    pages = list(range(len(files)))
+    selected_pages = select_pages(pages, n_questions, n_range)
+    return [[files[j] for j in i] for i in selected_pages]
