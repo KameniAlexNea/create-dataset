@@ -1,18 +1,14 @@
 import os
-from typing import Union
 
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
 
-from .qa_dataclass import MCQBank, QABank
-from langchain_core.messages import BaseMessage
-
 
 class ModelName:
     ANTHROPIC = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-sonnet-20240229")
-    OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5:3b")
+    OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "deepseek-r1")  # "qwen2.5:3b"
     OPENAI = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
     XAI = os.getenv("XAI_MODEL_NAME", "grok-beta")
 
@@ -47,15 +43,17 @@ class ChatLLM:
         else:
             raise ValueError("Invalid chat type")
         if question_type == QuestionType.MCQ:
-            from .prompts.mcq_prompt import human, system, FORMAT
+            from .prompts.mcq_prompt import FORMAT, human, system
+
             # qa_type = MCQBank
         elif question_type == QuestionType.QA:
-            from .prompts.qa_prompt import human, system, FORMAT
+            from .prompts.qa_prompt import FORMAT, human, system
+
             # qa_type = QABank
-        self.human, self.system = human, system.format(FORMAT=FORMAT)
+        self.human, self.system, self.format = human, system, FORMAT
         self.n_questions = n_questions
 
-        self.structured_llm = chat # .with_structured_output(qa_type, include_raw=True)
+        self.structured_llm = chat  # .with_structured_output(qa_type, include_raw=True)
 
     def prepare(self, context, source: str, n_questions: int) -> str:
         return [
@@ -63,14 +61,15 @@ class ChatLLM:
             (
                 "user",
                 self.human.format(
-                    SOURCE=source, N_QUESTION=n_questions, CONTEXT=context
+                    SOURCE=source,
+                    N_QUESTION=n_questions,
+                    CONTEXT=context,
+                    FORMAT=self.format,
                 ),
             ),
         ]
 
-    def invoke(
-        self, prompt: str, source: str = None, n_questions: int = None
-    ) -> str:
+    def invoke(self, prompt: str, source: str = None, n_questions: int = None) -> str:
         source = source if source else "africa history"
         return self.structured_llm.invoke(
             self.prepare(prompt, source, n_questions or self.n_questions)
@@ -95,9 +94,7 @@ class ChatLLM:
             source = os.path.basename(root)
             return context, source
 
-    def invoke_from_file(
-        self, file_path: str, n_questions: int = None
-    ) -> str:
+    def invoke_from_file(self, file_path: str, n_questions: int = None) -> str:
         context, source = self._get_content(file_path)
         return self.invoke(context, source, n_questions)
 

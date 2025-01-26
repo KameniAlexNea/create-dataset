@@ -12,16 +12,12 @@ You are tasked with creating educational and engaging question-and-answer pairs 
 4. **Clear Question Format**: Phrase the question in a straightforward manner that encourages curiosity and engagement. Avoid overly complex or ambiguous wording.
 
 5. **Creativity and Depth**: Where possible, infuse the question with creativity or depth to inspire deeper reflection or analysis, making it both educational and engaging.
-
-Follow at the letter the given format
-
-{FORMAT}
 """
 
 human = """
 Here is the context provided, which you may use as inspiration for {N_QUESTION} question-and-answer pairs:
 
-<context source="{SOURCE}">
+<context>
 {CONTEXT}
 </context>
 
@@ -34,14 +30,19 @@ Here is the context provided, which you may use as inspiration for {N_QUESTION} 
 4. **Explanation (Optional)**: If needed, include a brief explanation to enhance understanding or provide additional insights about the answer.
 
 **Reminder**: Each question and answer should be understandable, contextually relevant, and capable of sparking curiosity or deeper thought.
+This should be the format of your output:
+
+{FORMAT}
 """
 
 FORMAT = """
-<QABank>
-  <Question>
-    <Text>The actual text of the question being asked</Text>
-    <Answer>The correct answer to the question</Answer>
-  </Question>
-  <!-- Add more Question entries as needed -->
-</QABank>
+{
+    "Questions": [
+        {
+            "Question": "The actual text of the question being asked",
+            "Answer": "The correct answer to the question"
+        }
+        <!-- Add more Question entries as needed -->
+    ]
+}
 """.lower()

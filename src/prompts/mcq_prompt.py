@@ -14,16 +14,12 @@ You are tasked with creating multiple-choice questions (MCQs) based on the provi
 5. **Clear and Concise Wording**: Phrase questions and answer choices in a straightforward manner to avoid ambiguity or unnecessary complexity. Ensure clarity and precision.
 
 6. **Accurate Answer Options**: Provide up to five answer choices (A, B, C, D, and E) for each question. At least one answer must be marked as correct, and all options should be plausible and relevant.
-
-Follow at the letter the given format
-
-{FORMAT}
 """
 
 human = """
 Here is the context provided, which you may use as inspiration for {N_QUESTION} multiple-choice questions:
 
-<context source="{SOURCE}">
+<context>
 {CONTEXT}
 </context>
 
@@ -37,32 +33,26 @@ Here is the context provided, which you may use as inspiration for {N_QUESTION} 
 5. **Question Wording**: Avoid phrasing like "According to the context" or "As mentioned in the passage." The questions should be clear and direct.
 
 **Reminder**: Each question and explanation should be understandable and answerable based on a general understanding of the context.
+
+This should be the format of your output:
+
+{FORMAT}
 """
 
 
 FORMAT = """
-<MCQBank>
-  <Question>
-    <Text>The actual text of the question being asked</Text>
-    <Choices>
-      <AnswerChoice>
-        <Letter>A</Letter>
-        <Text>The text content of answer choice A</Text>
-      </AnswerChoice>
-      <AnswerChoice>
-        <Letter>B</Letter>
-        <Text>The text content of answer choice B</Text>
-      </AnswerChoice>
-      <!-- Add more AnswerChoices as needed -->
-    </Choices>
-    <Answer>
-      <Choice>A</Choice>
-      <Choice>C</Choice>
-    </Answer>
-    <Explanation>
-      Factual detailed explanation of why the marked answers are correct.
-    </Explanation>
-  </Question>
-  <!-- Add more Question entries as needed -->
-</MCQBank>
+{
+    "Questions": [
+        {
+            "Question": "The actual text of the question being asked",
+            "Choices": {
+                "A": "The text content of answer choice A",
+                "B": "The text content of answer choice B"
+                <!-- Add more AnswerChoices as needed -->
+            },
+            "Answer": ["A", "C"],
+            "Explanation": "Factual detailed explanation of why the marked answers are correct."
+        }
+        <!-- Add more Question entries as needed -->
+}
 """.lower()
