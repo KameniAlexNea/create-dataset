@@ -1,2 +1,8 @@
 tox
 pytest
+pdf2image
+Pillow
+easyocr
+PyMuPDF
+tqdm
+pickleshare

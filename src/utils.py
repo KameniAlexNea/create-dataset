@@ -7,6 +7,29 @@ from glob import glob
 punctuation = "?!."
 
 
+def _select_pages(pages, n, m):
+    if not pages:
+        return []
+    pages = sorted(pages)
+
+    results = []
+    selected_pages = set()
+
+    sample_pages = random.sample(pages, min(n * 3, len(pages)))
+    for start_index in sample_pages:
+        consecutive_pages = pages[start_index : start_index + m]
+
+        # Check for overlap
+        if all(page not in selected_pages for page in consecutive_pages):
+            results.append(consecutive_pages)
+            selected_pages.union(consecutive_pages)
+
+        # Exit if we have enough results
+        if len(results) >= n:
+            break
+    return results
+
+
 def merge_sentences(sentence: str):
     sentences = sentence.strip().split("\n")
     result = sentences[0].strip()
@@ -56,47 +79,43 @@ def is_valid_file(raw: str):
     count2 = [i for i in lines if "—." in i]  # potential citation
     count3 = [1 for i in lines if is_potential_title(i)]  # potential citation part
     return (
-        (50 > len(lines) > 10)
-        and len(count) < 5
-        and len(count2) < 5
-        and len(count3) < 5
+        (50 > len(lines) > 5) and len(count) < 5 and len(count2) < 5 and len(count3) < 5
     )
 
 
-def get_dataset(folder: str):
-    files = sorted(glob(os.path.join(folder, "*.txt")))
-
+def get_files(files: list[str]):
     data = [open(file).read() for file in files]
-
     data = [merge_sentences(i) for i in data if is_valid_file(i)]
     return data
 
 
-def select_pages(pages, n, m):
-    if not pages:
-        return []
-    pages = sorted(pages)
-
-    results = []
-    selected_pages = set()
-
-    sample_pages = random.sample(pages, min(n * 3, len(pages)))
-    for start_index in sample_pages:
-        consecutive_pages = pages[start_index : start_index + m]
-
-        # Check for overlap
-        if all(page not in selected_pages for page in consecutive_pages):
-            results.append(consecutive_pages)
-            selected_pages.union(consecutive_pages)
-
-        # Exit if we have enough results
-        if len(results) >= n:
-            break
-    return results
-
-
 def choose_context_pages(folder: str, n_questions: int, n_range: int):
     files = sorted(glob(os.path.join(folder, "*.txt")))
+    files = [file for file in files if is_valid_file(open(file).read())]
     pages = list(range(len(files)))
-    selected_pages = select_pages(pages, n_questions, n_range)
+    selected_pages = _select_pages(pages, n_questions, n_range)
     return [[files[j] for j in i] for i in selected_pages]
+
+
+def get_contexts(pages):
+    sep = "-" * 10
+    return f"\n\n{sep}\n\n".join(get_files(pages))
+
+
+def get_contexts_by_folder(base_folder: str, n_questions: int = 50, n_range: int = 4):
+    def list_folders(path):
+        return [
+            os.path.join(path, name)
+            for name in os.listdir(path)
+            if os.path.isdir(os.path.join(path, name))
+        ]
+
+    folders: list[str] = list_folders(base_folder)
+    contexts = {
+        os.path.basename(folder).strip(): [
+            get_contexts(context_pages)
+            for context_pages in choose_context_pages(folder, n_questions, n_range)
+        ]
+        for folder in folders
+    }
+    return {key: [i for i in value if i] for key, value in contexts.items()}
