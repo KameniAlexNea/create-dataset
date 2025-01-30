@@ -1,0 +1,6 @@
+pydantic
+langchain-ollama
+langchain-xai
+langchain-openai
+langchain-anthropic
+langchain
