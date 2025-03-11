@@ -1,17 +1,19 @@
 import pytest
 from pydantic import ValidationError
+
 from qageneratorllm.qa_dataclass import (
     AnswerChoice,
-    Question,
     MCQBank,
+    Question,
     QuestionAnswer,
-    QABank
 )
+
 
 def test_answer_choice():
     choice = AnswerChoice(letter="A", text="Test answer")
     assert choice.letter == "A"
     assert choice.text == "Test answer"
+
 
 def test_mcq_question():
     question = Question(
@@ -21,30 +23,32 @@ def test_mcq_question():
             AnswerChoice(letter="B", text="Choice B"),
         ],
         answer=["A"],
-        explanation="Test explanation"
+        explanation="Test explanation",
     )
     assert question.question == "Test question?"
     assert len(question.choices) == 2
     assert question.answer == ["A"]
 
+
 def test_qa_question():
-    qa = QuestionAnswer(
-        question="Test question?",
-        answer="Test answer"
-    )
+    qa = QuestionAnswer(question="Test question?", answer="Test answer")
     assert qa.question == "Test question?"
     assert qa.answer == "Test answer"
 
+
 def test_mcq_bank():
-    bank = MCQBank(questions=[
-        Question(
-            question="Test?",
-            choices=[AnswerChoice(letter="A", text="Choice")],
-            answer=["A"],
-            explanation="Test"
-        )
-    ])
+    bank = MCQBank(
+        questions=[
+            Question(
+                question="Test?",
+                choices=[AnswerChoice(letter="A", text="Choice")],
+                answer=["A"],
+                explanation="Test",
+            )
+        ]
+    )
     assert len(bank.questions) == 1
+
 
 def test_invalid_mcq():
     with pytest.raises(ValidationError):
@@ -52,5 +56,5 @@ def test_invalid_mcq():
             question="Test?",
             choices=[],  # Empty choices
             answer=["A"],
-            explanation="Test"
+            explanation="Test",
         )

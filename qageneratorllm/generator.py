@@ -1,8 +1,8 @@
-import os
-from typing import List, Tuple, Union
 import argparse
 import json
+import os
 from pathlib import Path
+from typing import List, Tuple, Union
 
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
@@ -51,16 +51,20 @@ class ChatLLM:
 
         if question_type == QuestionType.MCQ:
             from .prompts.mcq_prompt import FORMAT, human, system
+
             self.qa_type = MCQBank
         elif question_type == QuestionType.QA:
             from .prompts.qa_prompt import FORMAT, human, system
+
             self.qa_type = QABank
-        
+
         self.human, self.system, self.format = human, system, FORMAT
         self.n_questions = n_questions
         self.structured_llm = chat.with_structured_output(self.qa_type)
 
-    def prepare(self, context: str, source: str, n_questions: int) -> List[Tuple[str, str]]:
+    def prepare(
+        self, context: str, source: str, n_questions: int
+    ) -> List[Tuple[str, str]]:
         return [
             ("system", self.system),
             (
@@ -74,7 +78,9 @@ class ChatLLM:
             ),
         ]
 
-    def invoke(self, prompt: str, source: str = None, n_questions: int = None) -> Union[MCQBank, QABank]:
+    def invoke(
+        self, prompt: str, source: str = None, n_questions: int = None
+    ) -> Union[MCQBank, QABank]:
         source = source if source else "general knowledge"
         return self.structured_llm.invoke(
             self.prepare(prompt, source, n_questions or self.n_questions)
@@ -114,32 +120,38 @@ class ChatLLM:
     def save_result(self, result: Union[MCQBank, QABank], output_path: str):
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(result.model_dump(), f, ensure_ascii=False, indent=2)
 
-    def batch_invoke_from_folder(self, folder_path: str, n_questions: int = None) -> list[str]:
+    def batch_invoke_from_folder(
+        self, folder_path: str, n_questions: int = None
+    ) -> list[str]:
         folder = Path(folder_path)
-        file_paths = [str(f) for f in folder.rglob('*.txt')]
+        file_paths = [str(f) for f in folder.rglob("*.txt")]
         return self.batch_invoke_from_files(file_paths, n_questions)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Generate QA pairs from text files')
-    parser.add_argument('input', help='Input file or folder path')
-    parser.add_argument('--output', '-o', help='Output file path', default=None)
-    parser.add_argument('--batch', '-b', action='store_true', help='Process input as folder')
-    parser.add_argument('--questions', '-n', type=int, default=5, help='Number of questions to generate')
-    
+    parser = argparse.ArgumentParser(description="Generate QA pairs from text files")
+    parser.add_argument("input", help="Input file or folder path")
+    parser.add_argument("--output", "-o", help="Output file path", default=None)
+    parser.add_argument(
+        "--batch", "-b", action="store_true", help="Process input as folder"
+    )
+    parser.add_argument(
+        "--questions", "-n", type=int, default=5, help="Number of questions to generate"
+    )
+
     args = parser.parse_args()
     chat = ChatLLM(n_questions=args.questions)
-    
+
     if args.batch:
         results = chat.batch_invoke_from_folder(args.input)
         if args.output:
             output_dir = Path(args.output)
             output_dir.mkdir(parents=True, exist_ok=True)
             for i, result in enumerate(results):
-                output_path = output_dir / f'qa_{i}.json'
+                output_path = output_dir / f"qa_{i}.json"
                 chat.save_result(result, str(output_path))
         else:
             print(json.dumps([r.dict() for r in results], ensure_ascii=False, indent=2))

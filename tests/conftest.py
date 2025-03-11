@@ -1,5 +1,5 @@
-import os
 import pytest
+
 
 @pytest.fixture
 def sample_context():
@@ -9,16 +9,18 @@ def sample_context():
     Pyramids were built as tombs for pharaohs and their consorts during the Old and Middle Kingdom periods.
     """
 
+
 @pytest.fixture
 def sample_qa_response():
     return {
         "questions": [
             {
                 "question": "When did Ancient Egypt civilization exist?",
-                "answer": "Ancient Egypt existed from about 3100 BC to 30 BC."
+                "answer": "Ancient Egypt existed from about 3100 BC to 30 BC.",
             }
         ]
     }
+
 
 @pytest.fixture
 def sample_mcq_response():
@@ -32,10 +34,11 @@ def sample_mcq_response():
                     "c": "Military fortresses",
                 },
                 "answer": ["a"],
-                "explanation": "Pyramids were built as tombs for pharaohs and their consorts during the Old and Middle Kingdom periods."
+                "explanation": "Pyramids were built as tombs for pharaohs and their consorts during the Old and Middle Kingdom periods.",
             }
         ]
     }
+
 
 @pytest.fixture
 def temp_text_file(tmp_path):
