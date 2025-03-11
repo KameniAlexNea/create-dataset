@@ -1,0 +1,6 @@
+PACKAGE_NAME = "qageneratorllm"
+VERSION = "0.0.1"
+DESCRIPTION = "A Python package for generating questions and answers using various LLM providers."
+AUTHOR = "Alex Kameni"
+AUTHOR_EMAIL = "kamenialexnea@gmail.com"
+URL = "https://github.com/KameniAlexNea/create-dataset"
