@@ -1,9 +1,12 @@
 import os
+from typing import List, Tuple, Union
 
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
+
+from .qa_dataclass import MCQBank, QABank
 
 
 class ModelName:
@@ -28,8 +31,8 @@ class QuestionType:
 class ChatLLM:
     def __init__(
         self,
-        chat_type: ChatLLMType = ChatLLMType.OLLAMA,
-        question_type: QuestionType = QuestionType.QA,
+        chat_type: str = ChatLLMType.OLLAMA,
+        question_type: str = QuestionType.QA,
         n_questions: int = 5,
     ):
         if chat_type == ChatLLMType.ANTHROPIC:
@@ -42,20 +45,19 @@ class ChatLLM:
             chat = ChatXAI(model=ModelName.XAI)
         else:
             raise ValueError("Invalid chat type")
+
         if question_type == QuestionType.MCQ:
             from .prompts.mcq_prompt import FORMAT, human, system
-
-            # qa_type = MCQBank
+            self.qa_type = MCQBank
         elif question_type == QuestionType.QA:
             from .prompts.qa_prompt import FORMAT, human, system
-
-            # qa_type = QABank
+            self.qa_type = QABank
+        
         self.human, self.system, self.format = human, system, FORMAT
         self.n_questions = n_questions
+        self.structured_llm = chat.with_structured_output(self.qa_type)
 
-        self.structured_llm = chat  # .with_structured_output(qa_type, include_raw=True)
-
-    def prepare(self, context, source: str, n_questions: int) -> str:
+    def prepare(self, context: str, source: str, n_questions: int) -> List[Tuple[str, str]]:
         return [
             ("system", self.system),
             (
@@ -69,11 +71,11 @@ class ChatLLM:
             ),
         ]
 
-    def invoke(self, prompt: str, source: str = None, n_questions: int = None) -> str:
-        source = source if source else "africa history"
+    def invoke(self, prompt: str, source: str = None, n_questions: int = None) -> Union[MCQBank, QABank]:
+        source = source if source else "general knowledge"
         return self.structured_llm.invoke(
             self.prepare(prompt, source, n_questions or self.n_questions)
-        ).content
+        )
 
     def batch_invoke(
         self, prompts: list[str], sources: list[str] = None, n_questions: int = None
