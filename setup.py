@@ -12,6 +12,13 @@ setup(
         "langchain-xai",
         "pydantic",
     ],
+    extras_require={
+        "test": [
+            "pytest>=7.0",
+            "pytest-cov>=3.0",
+            "pytest-mock>=3.10",
+        ],
+    },
     python_requires=">=3.8",
     author="Original Author",
     description="A package for generating Q&A and MCQ using various LLM providers",
