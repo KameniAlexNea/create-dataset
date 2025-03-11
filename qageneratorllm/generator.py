@@ -9,26 +9,7 @@ from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
 
-from .qa_dataclass import MCQBank, QABank
-
-
-class ModelName:
-    ANTHROPIC = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-sonnet-20240229")
-    OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "deepseek-r1")  # "qwen2.5:3b"
-    OPENAI = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
-    XAI = os.getenv("XAI_MODEL_NAME", "grok-beta")
-
-
-class ChatLLMType:
-    ANTHROPIC = "anthropic"
-    OLLAMA = "ollama"
-    OPENAI = "openai"
-    XAI = "xai"
-
-
-class QuestionType:
-    MCQ = "mcq"
-    QA = "qa"
+from .qa_dataclass import ChatLLMType, MCQBank, ModelName, QABank, QuestionType
 
 
 class ChatLLM:
@@ -50,15 +31,15 @@ class ChatLLM:
             raise ValueError("Invalid chat type")
 
         if question_type == QuestionType.MCQ:
-            from .prompts.mcq_prompt import FORMAT, human, system
+            from .prompts.mcq_prompt import FORMAT, SYSTEM, HUMAN
 
             self.qa_type = MCQBank
         elif question_type == QuestionType.QA:
-            from .prompts.qa_prompt import FORMAT, human, system
+            from .prompts.qa_prompt import FORMAT, SYSTEM, HUMAN
 
             self.qa_type = QABank
 
-        self.human, self.system, self.format = human, system, FORMAT
+        self.human, self.system, self.format = HUMAN, SYSTEM, FORMAT
         self.n_questions = n_questions
         self.structured_llm = chat.with_structured_output(self.qa_type)
 
@@ -88,7 +69,7 @@ class ChatLLM:
 
     def batch_invoke(
         self, prompts: list[str], sources: list[str] = None, n_questions: int = None
-    ) -> list[str]:
+    ):
         sources = sources if sources else ["africa history"] * len(prompts)
         results = self.structured_llm.batch(
             [
@@ -96,7 +77,7 @@ class ChatLLM:
                 for prompt, source in zip(prompts, sources)
             ]
         )
-        return [result.content for result in results]
+        return results
 
     def _get_content(self, file_path: str) -> str:
         with open(file_path, "r") as file:
@@ -109,9 +90,7 @@ class ChatLLM:
         context, source = self._get_content(file_path)
         return self.invoke(context, source, n_questions)
 
-    def batch_invoke_from_files(
-        self, file_paths: list[str], n_questions: int = None
-    ) -> list[str]:
+    def batch_invoke_from_files(self, file_paths: list[str], n_questions: int = None):
         contexts, sources = zip(
             *[self._get_content(file_path) for file_path in file_paths]
         )
@@ -123,9 +102,7 @@ class ChatLLM:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(result.model_dump(), f, ensure_ascii=False, indent=2)
 
-    def batch_invoke_from_folder(
-        self, folder_path: str, n_questions: int = None
-    ) -> list[str]:
+    def batch_invoke_from_folder(self, folder_path: str, n_questions: int = None):
         folder = Path(folder_path)
         file_paths = [str(f) for f in folder.rglob("*.txt")]
         return self.batch_invoke_from_files(file_paths, n_questions)
@@ -133,7 +110,7 @@ class ChatLLM:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate QA pairs from text files")
-    parser.add_argument("input", help="Input file or folder path")
+    parser.add_argument("--input", "-i", help="Input file or folder path")
     parser.add_argument("--output", "-o", help="Output file path", default=None)
     parser.add_argument(
         "--batch", "-b", action="store_true", help="Process input as folder"
@@ -154,7 +131,7 @@ if __name__ == "__main__":
                 output_path = output_dir / f"qa_{i}.json"
                 chat.save_result(result, str(output_path))
         else:
-            print(json.dumps([r.dict() for r in results], ensure_ascii=False, indent=2))
+            print(json.dumps([r.model_dump() for r in results], ensure_ascii=False, indent=2))
     else:
         result = chat.invoke_from_file(args.input)
         if args.output:

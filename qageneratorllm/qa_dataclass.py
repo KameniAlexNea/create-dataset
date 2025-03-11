@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -38,3 +39,22 @@ class QABank(BaseModel):
     questions: List[QuestionAnswer] = Field(
         description="Collection of all questions in the question bank"
     )
+
+
+class ModelName:
+    ANTHROPIC = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-sonnet-20240229")
+    OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "deepseek-r1")  # "qwen2.5:3b"
+    OPENAI = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
+    XAI = os.getenv("XAI_MODEL_NAME", "grok-beta")
+
+
+class ChatLLMType:
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
+    OPENAI = "openai"
+    XAI = "xai"
+
+
+class QuestionType:
+    MCQ = "mcq"
+    QA = "qa"

@@ -1,4 +1,4 @@
-system = """
+SYSTEM = """
 You are tasked with creating educational and engaging question-and-answer pairs based on the provided context. Your goal is to craft a single creative question and a concise, accurate answer, ensuring the information is informative, thought-provoking, and engaging.
 
 **Guidelines for Question and Answer Generation:**
@@ -14,7 +14,7 @@ You are tasked with creating educational and engaging question-and-answer pairs 
 5. **Creativity and Depth**: Where possible, infuse the question with creativity or depth to inspire deeper reflection or analysis, making it both educational and engaging.
 """
 
-human = """
+HUMAN = """
 Here is the context provided, which you may use as inspiration for {N_QUESTION} question-and-answer pairs:
 
 <context>
