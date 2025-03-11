@@ -1,5 +1,8 @@
 import os
 from typing import List, Tuple, Union
+import argparse
+import json
+from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
@@ -108,11 +111,41 @@ class ChatLLM:
         )
         return self.batch_invoke(contexts, sources, n_questions)
 
+    def save_result(self, result: Union[MCQBank, QABank], output_path: str):
+        output = Path(output_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(result.model_dump(), f, ensure_ascii=False, indent=2)
+
+    def batch_invoke_from_folder(self, folder_path: str, n_questions: int = None) -> list[str]:
+        folder = Path(folder_path)
+        file_paths = [str(f) for f in folder.rglob('*.txt')]
+        return self.batch_invoke_from_files(file_paths, n_questions)
+
 
 if __name__ == "__main__":
-    chat = ChatLLM()
-    print(
-        chat.invoke_from_file(
-            "data/texts/CAD Antériorité des Civilisations Nègres/0d8ab37478294a4bb8d6932e19900ce8.txt"
-        )
-    )
+    parser = argparse.ArgumentParser(description='Generate QA pairs from text files')
+    parser.add_argument('input', help='Input file or folder path')
+    parser.add_argument('--output', '-o', help='Output file path', default=None)
+    parser.add_argument('--batch', '-b', action='store_true', help='Process input as folder')
+    parser.add_argument('--questions', '-n', type=int, default=5, help='Number of questions to generate')
+    
+    args = parser.parse_args()
+    chat = ChatLLM(n_questions=args.questions)
+    
+    if args.batch:
+        results = chat.batch_invoke_from_folder(args.input)
+        if args.output:
+            output_dir = Path(args.output)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            for i, result in enumerate(results):
+                output_path = output_dir / f'qa_{i}.json'
+                chat.save_result(result, str(output_path))
+        else:
+            print(json.dumps([r.dict() for r in results], ensure_ascii=False, indent=2))
+    else:
+        result = chat.invoke_from_file(args.input)
+        if args.output:
+            chat.save_result(result, args.output)
+        else:
+            print(json.dumps(result.dict(), ensure_ascii=False, indent=2))
