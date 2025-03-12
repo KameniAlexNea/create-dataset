@@ -1,3 +1,7 @@
 tox
 pytest
+sphinx
+wheel
+twine
+build
 pickleshare

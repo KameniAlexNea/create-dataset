@@ -1,7 +1,6 @@
 import os
 from typing import List
-
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AnswerChoice(BaseModel):
@@ -17,11 +16,31 @@ class Question(BaseModel):
         description="List of possible answer choices for the question"
     )
     answer: List[str] = Field(
-        description="List of letters corresponding to the correct answer choices. examples : ['A', 'C']"
+        description="List of letters corresponding to the correct answer choices. Examples: ['A', 'C']"
     )
     explanation: str = Field(
         description="Factual detailed explanation of why the marked answers are correct"
     )
+
+    @field_validator("choices")
+    @classmethod
+    def validate_unique_choices(cls, choices: list[AnswerChoice]):
+        for choice in choices:
+            if not isinstance(choice, AnswerChoice):
+                raise ValueError("Choices must be of class AnswerChoice")
+        letters = {choice.letter for choice in choices}
+        if len(letters) != len(choices):
+            raise ValueError("Choices must have unique letter identifiers.")
+        return choices
+
+    @field_validator("answer")
+    @classmethod
+    def validate_answer(cls, answers, values):
+        choice_letters = {choice.letter for choice in values.get("choices", [])}
+        for ans in answers:
+            if ans not in choice_letters:
+                raise ValueError(f"Invalid answer choice '{ans}'. Must be one of {sorted(choice_letters)}")
+        return answers
 
 
 class MCQBank(BaseModel):
@@ -43,7 +62,7 @@ class QABank(BaseModel):
 
 class ModelName:
     ANTHROPIC = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-sonnet-20240229")
-    OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "deepseek-r1")  # "qwen2.5:3b"
+    OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5")
     OPENAI = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
     XAI = os.getenv("XAI_MODEL_NAME", "grok-beta")
 

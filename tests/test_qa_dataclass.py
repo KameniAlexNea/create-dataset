@@ -51,7 +51,7 @@ def test_mcq_bank():
 
 
 def test_invalid_mcq():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         Question(
             question="Test?",
             choices=[],  # Empty choices

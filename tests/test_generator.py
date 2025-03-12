@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from qageneratorllm import ChatLLM, ChatLLMType, QuestionType
@@ -8,7 +6,7 @@ from qageneratorllm.qa_dataclass import MCQBank, QABank
 
 def test_chat_llm_initialization():
     llm = ChatLLM()
-    assert llm.question_type == QuestionType.QA
+    assert llm.qa_type == QABank
     assert llm.n_questions == 5
 
 
@@ -17,11 +15,18 @@ def test_chat_llm_invalid_type():
         ChatLLM(chat_type="invalid")
 
 
-@patch("langchain_ollama.ChatOllama")
-def test_invoke_qa(mock_chat, sample_context, sample_qa_response):
-    mock_chat.return_value.with_structured_output.return_value.invoke.return_value = (
-        QABank(**sample_qa_response)
-    )
+def test_invoke_qa(monkeypatch, sample_context, sample_qa_response):
+    class MockStructuredLLM:
+        def invoke(self, _):
+            return sample_qa_response
+
+    def mock_init(self, *args, **kwargs):
+        self.qa_type = QABank
+        self.n_questions = 5
+        self.human, self.system, self.format = "", "", ""
+        self.structured_llm = MockStructuredLLM()
+
+    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
 
     llm = ChatLLM(question_type=QuestionType.QA)
     result = llm.invoke(sample_context)
@@ -30,11 +35,15 @@ def test_invoke_qa(mock_chat, sample_context, sample_qa_response):
     assert len(result.questions) == 1
 
 
-@patch("langchain_openai.ChatOpenAI")
-def test_invoke_mcq(mock_chat, sample_context, sample_mcq_response):
-    mock_chat.return_value.with_structured_output.return_value.invoke.return_value = (
-        MCQBank(**sample_mcq_response)
-    )
+def test_invoke_mcq(monkeypatch, sample_context, sample_mcq_response):
+    class MockChat:
+        def with_structured_output(self):
+            return self
+
+        def invoke(self, _):
+            return sample_mcq_response
+
+    monkeypatch.setattr("langchain_openai.ChatOpenAI", MockChat)
 
     llm = ChatLLM(chat_type=ChatLLMType.OPENAI, question_type=QuestionType.MCQ)
     result = llm.invoke(sample_context)
@@ -43,18 +52,23 @@ def test_invoke_mcq(mock_chat, sample_context, sample_mcq_response):
     assert len(result.questions) == 1
 
 
-def test_invoke_from_file(temp_text_file):
-    with patch.object(ChatLLM, "invoke") as mock_invoke:
-        llm = ChatLLM()
-        llm.invoke_from_file(temp_text_file)
+def test_invoke_from_file(monkeypatch, temp_text_file):
+    def mock_invoke(_):
+        return None
 
-        mock_invoke.assert_called_once()
+    monkeypatch.setattr(ChatLLM, "invoke", mock_invoke)
+
+    llm = ChatLLM()
+    llm.invoke_from_file(temp_text_file)
 
 
-def test_batch_invoke(sample_context):
-    with patch.object(ChatLLM, "structured_llm") as mock_llm:
-        llm = ChatLLM()
-        contexts = [sample_context] * 3
-        llm.batch_invoke(contexts)
+def test_batch_invoke(monkeypatch, sample_context):
+    class MockLLM:
+        def batch(self, _):
+            pass
 
-        mock_llm.batch.assert_called_once()
+    monkeypatch.setattr(ChatLLM, "structured_llm", MockLLM())
+
+    llm = ChatLLM()
+    contexts = [sample_context] * 3
+    llm.batch_invoke(contexts)

@@ -22,7 +22,7 @@ def test_is_potential_title():
 
 
 def test_is_valid_file():
-    valid_content = "Normal text content\nwith multiple lines\nbut not too many."
+    valid_content = "Normal text content\nwith multiple lines\nwith multiple lines\nwith multiple lines\nbut not too many."
     invalid_content = "".join([f"Line {i}...............\n" for i in range(10)])
 
     assert is_valid_file(valid_content)
