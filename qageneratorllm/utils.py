@@ -110,9 +110,7 @@ def is_valid_file(raw: str):
     count = [i for i in lines if ".............." in i]  # potential title
     count2 = [i for i in lines if "—." in i]  # potential citation
     count3 = [1 for i in lines if is_potential_title(i)]  # potential citation part
-    return (
-        (len(lines) > 3) and len(count) < 5 and len(count2) < 5 and len(count3) < 5
-    )
+    return (len(lines) > 3) and len(count) < 5 and len(count2) < 5 and len(count3) < 5
 
 
 def get_files(files: list[str]):

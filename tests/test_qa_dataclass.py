@@ -1,5 +1,4 @@
 import pytest
-from pydantic import ValidationError
 
 from qageneratorllm.qa_dataclass import (
     AnswerChoice,

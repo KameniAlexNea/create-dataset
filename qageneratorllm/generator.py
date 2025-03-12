@@ -31,11 +31,11 @@ class ChatLLM:
             raise ValueError("Invalid chat type")
 
         if question_type == QuestionType.MCQ:
-            from .prompts.mcq_prompt import FORMAT, SYSTEM, HUMAN
+            from .prompts.mcq_prompt import FORMAT, HUMAN, SYSTEM
 
             self.qa_type = MCQBank
         elif question_type == QuestionType.QA:
-            from .prompts.qa_prompt import FORMAT, SYSTEM, HUMAN
+            from .prompts.qa_prompt import FORMAT, HUMAN, SYSTEM
 
             self.qa_type = QABank
 
@@ -131,7 +131,11 @@ if __name__ == "__main__":
                 output_path = output_dir / f"qa_{i}.json"
                 chat.save_result(result, str(output_path))
         else:
-            print(json.dumps([r.model_dump() for r in results], ensure_ascii=False, indent=2))
+            print(
+                json.dumps(
+                    [r.model_dump() for r in results], ensure_ascii=False, indent=2
+                )
+            )
     else:
         result = chat.invoke_from_file(args.input)
         if args.output:

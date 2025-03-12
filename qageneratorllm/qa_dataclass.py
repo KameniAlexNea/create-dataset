@@ -1,5 +1,6 @@
 import os
 from typing import List
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -36,10 +37,12 @@ class Question(BaseModel):
     @field_validator("answer")
     @classmethod
     def validate_answer(cls, answers, values):
-        choice_letters = {choice.letter for choice in values.get("choices", [])}
+        choice_letters = {choice.letter for choice in values.data.get("choices", [])}
         for ans in answers:
             if ans not in choice_letters:
-                raise ValueError(f"Invalid answer choice '{ans}'. Must be one of {sorted(choice_letters)}")
+                raise ValueError(
+                    f"Invalid answer choice '{ans}'. Must be one of {sorted(choice_letters)}"
+                )
         return answers
 
 

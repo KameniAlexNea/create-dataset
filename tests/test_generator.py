@@ -43,7 +43,13 @@ def test_invoke_mcq(monkeypatch, sample_context, sample_mcq_response):
         def invoke(self, _):
             return sample_mcq_response
 
-    monkeypatch.setattr("langchain_openai.ChatOpenAI", MockChat)
+    def mock_init(self, *args, **kwargs):
+        self.qa_type = kwargs.get("question_type")
+        self.n_questions = 5
+        self.human, self.system, self.format = "", "", ""
+        self.structured_llm = MockChat()
+
+    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
 
     llm = ChatLLM(chat_type=ChatLLMType.OPENAI, question_type=QuestionType.MCQ)
     result = llm.invoke(sample_context)
@@ -53,10 +59,17 @@ def test_invoke_mcq(monkeypatch, sample_context, sample_mcq_response):
 
 
 def test_invoke_from_file(monkeypatch, temp_text_file):
-    def mock_invoke(_):
-        return None
+    class MockLLM:
+        def invoke(self, _):
+            pass
 
-    monkeypatch.setattr(ChatLLM, "invoke", mock_invoke)
+    def mock_init(self, *args, **kwargs):
+        self.qa_type = QABank
+        self.n_questions = 5
+        self.human, self.system, self.format = "", "", ""
+        self.structured_llm = MockLLM()
+
+    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
 
     llm = ChatLLM()
     llm.invoke_from_file(temp_text_file)
@@ -67,7 +80,15 @@ def test_batch_invoke(monkeypatch, sample_context):
         def batch(self, _):
             pass
 
-    monkeypatch.setattr(ChatLLM, "structured_llm", MockLLM())
+    def mock_init(self, *args, **kwargs):
+        self.qa_type = QABank
+        self.n_questions = 5
+        self.human, self.system, self.format = "", "", ""
+        self.structured_llm = MockLLM()
+
+    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
+
+    # monkeypatch.setattr(ChatLLM, "structured_llm", MockLLM())
 
     llm = ChatLLM()
     contexts = [sample_context] * 3
