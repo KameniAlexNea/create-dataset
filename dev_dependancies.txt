@@ -1,8 +1,7 @@
 tox
 pytest
-pdf2image
-Pillow
-easyocr
-PyMuPDF
-tqdm
+sphinx
+wheel
+twine
+build
 pickleshare

@@ -30,25 +30,57 @@ def _select_pages(pages, n, m):
     return results
 
 
-def merge_sentences(sentence: str):
-    sentences = sentence.strip().split("\n")
-    result = sentences[0].strip()
-    for i, j in zip(sentences, sentences[1:]):
-        i, j = i.strip(), j.strip()  # Strip leading and trailing whitespace
+def merge_sentences(text: str) -> str:
+    """
+    Merge lines from OCR/PDF text by handling common token splits.
 
-        # If the line ends with a hyphen, merge without space to continue the word
-        if i.endswith("-"):
-            result += j
-        # If the line ends with punctuation, start a new line
-        elif i and i[-1] in punctuation:
-            result += "\n" + j
-        # If both lines start with uppercase, consider it a new paragraph/title
-        elif j and i.isupper() and j[0].isupper():
-            result += "\n" + j
-        # Otherwise, add a space and continue the sentence
+    Rules:
+        - If a line ends with a hyphen, remove the hyphen and merge it with the next line.
+        - If the previous (merged) line ends with punctuation (".", "?", "!"),
+            start a new line with the current text.
+        - If the current line is all uppercase (likely a title/heading),
+            start a new line.
+        - If the current line starts with an uppercase letter and the previous line
+            does not end with punctuation, assume a new sentence/paragraph.
+        - Otherwise, merge the current line with a space.
+
+        Parameters:
+            text (str): The input text with potential unwanted line breaks.
+
+    Returns:
+        str: The cleaned and merged text.
+    """
+    punctuation = {".", "?", "!"}
+    # Split text into non-empty, stripped lines.
+    lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
+    if not lines:
+        return ""
+
+    merged = [lines[0]]
+    for line in lines[1:]:
+        last_line = merged[-1]
+        # If the last line ends with a hyphen, remove it and merge without a space.
+        if last_line.endswith("-"):
+            merged[-1] = last_line[:-1] + line
+        # If the last line ends with sentence punctuation, start a new line.
+        elif last_line and last_line[-1] in punctuation:
+            merged.append(line)
+        # If the current line is all uppercase, treat it as a title or heading.
+        elif line.isupper():
+            merged.append(line)
+        # If the current line starts with uppercase and the previous line doesn't end with punctuation,
+        # assume it's a new sentence/paragraph.
+        elif (
+            line
+            and line[0].isupper()
+            and (not last_line or last_line[-1] not in punctuation)
+        ):
+            merged.append(line)
+        # Otherwise, join the current line with a space.
         else:
-            result += " " + j if j else ""
-    return result.strip()
+            merged[-1] = last_line + " " + line
+
+    return "\n".join(merged).strip()
 
 
 def is_potential_title(line: str) -> bool:
@@ -78,9 +110,7 @@ def is_valid_file(raw: str):
     count = [i for i in lines if ".............." in i]  # potential title
     count2 = [i for i in lines if "—." in i]  # potential citation
     count3 = [1 for i in lines if is_potential_title(i)]  # potential citation part
-    return (
-        (50 > len(lines) > 5) and len(count) < 5 and len(count2) < 5 and len(count3) < 5
-    )
+    return (len(lines) > 3) and len(count) < 5 and len(count2) < 5 and len(count3) < 5
 
 
 def get_files(files: list[str]):

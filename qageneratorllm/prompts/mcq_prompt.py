@@ -1,4 +1,4 @@
-system = """
+SYSTEM = """
 You are tasked with creating multiple-choice questions (MCQs) based on the provided context. These questions should be engaging, educational, and accessible to anyone with a foundational knowledge of the topic. Your goal is to craft questions that assess a broad understanding of the subject while encouraging deeper thought.
 
 **Guidelines for Question Generation:**
@@ -16,7 +16,7 @@ You are tasked with creating multiple-choice questions (MCQs) based on the provi
 6. **Accurate Answer Options**: Provide up to five answer choices (A, B, C, D, and E) for each question. At least one answer must be marked as correct, and all options should be plausible and relevant.
 """
 
-human = """
+HUMAN = """
 Here is the context provided, which you may use as inspiration for {N_QUESTION} multiple-choice questions:
 
 <context>
