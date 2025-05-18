@@ -31,9 +31,9 @@ def test_multiple_choice_question():
 
 
 def test_open_ended_question():
-    qa = OpenEndedQuestion(question_prompt="Test question?", model_answer="Test answer")
+    qa = OpenEndedQuestion(question_prompt="Test question?", reference_answer="Test answer")
     assert qa.question_prompt == "Test question?"
-    assert qa.model_answer == "Test answer"
+    assert qa.reference_answer == "Test answer"
 
 
 def test_multiple_choice_question_bank():

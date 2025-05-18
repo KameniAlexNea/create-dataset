@@ -94,7 +94,7 @@ class OpenEndedQuestion(BaseModel):
     question_prompt: str = Field(
         description="The complete text of the question that requires a detailed written response"
     )
-    model_answer: str = Field(
+    reference_answer: str = Field(
         description="The exemplar answer that completely addresses the question with factual information"
     )
 
@@ -112,15 +112,15 @@ class OpenEndedQuestionBank(BaseModel):
             open_ended_questions=[
                 OpenEndedQuestion(
                     question_prompt="What is the capital of France?",
-                    model_answer="The capital of France is Paris."
+                    reference_answer="The capital of France is Paris."
                 ),
                 OpenEndedQuestion(
                     question_prompt="Who wrote 'Romeo and Juliet'?",
-                    model_answer="William Shakespeare wrote 'Romeo and Juliet'."
+                    reference_answer="William Shakespeare wrote 'Romeo and Juliet'."
                 ),
                 OpenEndedQuestion(
                     question_prompt="What is the chemical symbol for water?",
-                    model_answer="The chemical formula for water is H₂O, consisting of two hydrogen atoms and one oxygen atom."
+                    reference_answer="The chemical formula for water is H₂O, consisting of two hydrogen atoms and one oxygen atom."
                 )
             ]
         )

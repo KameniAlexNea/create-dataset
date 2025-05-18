@@ -24,7 +24,7 @@ def sample_qa_response():
         open_ended_questions=[
             OpenEndedQuestion(
                 question_prompt="When did Ancient Egypt civilization exist?",
-                model_answer="Ancient Egypt existed from about 3100 BC to 30 BC."
+                reference_answer="Ancient Egypt existed from about 3100 BC to 30 BC."
             )
         ]
     )
