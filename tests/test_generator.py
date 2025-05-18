@@ -29,7 +29,7 @@ def test_invoke_qa(monkeypatch, sample_context, sample_qa_response):
     def mock_init(self, *args, **kwargs):
         self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
-        self.human, self.system, self.format = "", "", ""
+        self.human, self.system, self.template_format = "", "", ""
         self.structured_llm = MockStructuredLLM()
         self.output_type = OutputType.DATACLASS
 
@@ -53,7 +53,7 @@ def test_invoke_mcq(monkeypatch, sample_context, sample_mcq_response):
     def mock_init(self, *args, **kwargs):
         self.qa_type = kwargs.get("question_type")
         self.n_questions = 5
-        self.human, self.system, self.format = "", "", ""
+        self.human, self.system, self.template_format = "", "", ""
         self.structured_llm = MockLLM()
         self.output_type = OutputType.DATACLASS
 
@@ -76,7 +76,7 @@ def test_invoke_from_file(monkeypatch, temp_text_file):
     def mock_init(self, *args, **kwargs):
         self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
-        self.human, self.system, self.format = "", "", ""
+        self.human, self.system, self.template_format = "", "", ""
         self.structured_llm = MockLLM()
         self.output_type = OutputType.DATACLASS
 
@@ -94,7 +94,7 @@ def test_batch_invoke(monkeypatch, sample_context):
     def mock_init(self, *args, **kwargs):
         self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
-        self.human, self.system, self.format = "", "", ""
+        self.human, self.system, self.template_format = "", "", ""
         self.structured_llm = MockLLM()
         self.output_type = OutputType.DATACLASS
 
@@ -119,7 +119,7 @@ def test_invoke_json_qa(monkeypatch, sample_context, sample_qa_response):
     def mock_init(self, *args, **kwargs):
         self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
-        self.human, self.system, self.format = "", "", ""
+        self.human, self.system, self.template_format = "", "", ""
         self.llm = MockLLM()
         self.output_type = OutputType.JSON
 
@@ -158,7 +158,7 @@ def test_invoke_json_mcq(monkeypatch, sample_context, sample_mcq_response):
     def mock_init(self, *args, **kwargs):
         self.qa_type = MultipleChoiceQuestionBank
         self.n_questions = 5
-        self.human, self.system, self.format = "", "", ""
+        self.human, self.system, self.template_format = "", "", ""
         self.llm = MockLLM()
         self.output_type = OutputType.JSON
 
@@ -194,7 +194,7 @@ def test_batch_invoke_json(monkeypatch, sample_context, sample_qa_response):
     def mock_init(self, *args, **kwargs):
         self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
-        self.human, self.system, self.format = "", "", ""
+        self.human, self.system, self.template_format = "", "", ""
         self.llm = MockLLM()
         self.output_type = OutputType.JSON
 
