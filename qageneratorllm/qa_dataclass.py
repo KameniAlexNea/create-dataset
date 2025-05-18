@@ -146,3 +146,9 @@ class QuestionType:
     """Constants identifying different types of questions that can be generated."""
     MCQ = "mcq"  # Multiple choice questions
     QA = "qa"    # Open-ended questions
+
+
+class OutputType:
+    """Constants identifying different output formats for LLM responses."""
+    DATACLASS = "dataclass"  # Return a structured dataclass
+    JSON = "json"            # Return raw JSON
