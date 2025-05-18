@@ -58,7 +58,7 @@ class QuestionGenerator:
 
             self.qa_type = OpenEndedQuestionBank
 
-        self.human, self.system, self.format = (
+        self.human, self.system, self.template_format = (
             HUMAN,
             SYSTEM,
             get_example_json(self.qa_type.example()),
@@ -81,7 +81,7 @@ class QuestionGenerator:
                     SOURCE=source,
                     N_QUESTION=n_questions,
                     CONTEXT=context,
-                    FORMAT=self.format,
+                    FORMAT=self.template_format,
                 ),
             ),
         ]
