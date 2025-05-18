@@ -4,3 +4,4 @@ langchain-xai
 langchain-openai
 langchain-anthropic
 langchain
+git+https://github.com/KameniAlexNea/llama-index-toc-parser.git

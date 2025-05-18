@@ -18,15 +18,16 @@ class ChatLLM:
         chat_type: str = ChatLLMType.OLLAMA,
         question_type: str = QuestionType.QA,
         n_questions: int = 5,
+        model_name: str = None
     ):
         if chat_type == ChatLLMType.ANTHROPIC:
-            chat = ChatAnthropic(model=ModelName.ANTHROPIC)
+            chat = ChatAnthropic(model=model_name or ModelName.ANTHROPIC)
         elif chat_type == ChatLLMType.OLLAMA:
-            chat = ChatOllama(model=ModelName.OLLAMA)
+            chat = ChatOllama(model=model_name or ModelName.OLLAMA)
         elif chat_type == ChatLLMType.OPENAI:
-            chat = ChatOpenAI(model=ModelName.OPENAI)
+            chat = ChatOpenAI(model=model_name or ModelName.OPENAI)
         elif chat_type == ChatLLMType.XAI:
-            chat = ChatXAI(model=ModelName.XAI)
+            chat = ChatXAI(model=model_name or ModelName.XAI)
         else:
             raise ValueError("Invalid chat type")
 
