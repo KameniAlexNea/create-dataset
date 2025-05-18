@@ -50,6 +50,36 @@ class MCQBank(BaseModel):
     questions: List[Question] = Field(
         description="Collection of all questions in the question bank"
     )
+    
+    @classmethod
+    def example(cls) -> "MCQBank":
+        """Returns an example MCQBank instance with sample questions."""
+        return cls(
+            questions=[
+                Question(
+                    question="What is the capital of France?",
+                    choices=[
+                        AnswerChoice(letter="A", text="London"),
+                        AnswerChoice(letter="B", text="Paris"),
+                        AnswerChoice(letter="C", text="Berlin"),
+                        AnswerChoice(letter="D", text="Madrid"),
+                    ],
+                    answer=["B"],
+                    explanation="Paris is the capital and largest city of France."
+                ),
+                Question(
+                    question="Which of the following are primary colors?",
+                    choices=[
+                        AnswerChoice(letter="A", text="Red"),
+                        AnswerChoice(letter="B", text="Green"),
+                        AnswerChoice(letter="C", text="Blue"),
+                        AnswerChoice(letter="D", text="Purple"),
+                    ],
+                    answer=["A", "C"],
+                    explanation="Red and Blue are primary colors. Green is also a primary color in the RGB color model, but not in the traditional RYB color model used in art."
+                )
+            ]
+        )
 
 
 class QuestionAnswer(BaseModel):
@@ -61,6 +91,26 @@ class QABank(BaseModel):
     questions: List[QuestionAnswer] = Field(
         description="Collection of all questions in the question bank"
     )
+    
+    @classmethod
+    def example(cls) -> "QABank":
+        """Returns an example QABank instance with sample questions and answers."""
+        return cls(
+            questions=[
+                QuestionAnswer(
+                    question="What is the capital of France?",
+                    answer="The capital of France is Paris."
+                ),
+                QuestionAnswer(
+                    question="Who wrote 'Romeo and Juliet'?",
+                    answer="William Shakespeare wrote 'Romeo and Juliet'."
+                ),
+                QuestionAnswer(
+                    question="What is the chemical symbol for water?",
+                    answer="The chemical formula for water is H₂O, consisting of two hydrogen atoms and one oxygen atom."
+                )
+            ]
+        )
 
 
 class ModelName:
