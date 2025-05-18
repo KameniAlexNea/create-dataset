@@ -1,3 +1,64 @@
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "qageneratorllm"
+version = "0.1.1"
+description = "A Python package for generating educational questions and answers using various LLM providers."
+readme = "README.md"
+authors = [
+    {name = "Alex Kameni", email = "kamenialexnea@gmail.com"}
+]
+requires-python = ">=3.10"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Education",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["education", "llm", "questions", "ai", "mcq", "quiz"]
+dependencies = [
+    "pydantic",
+    "langchain-ollama",
+    "langchain-xai",
+    "langchain-openai",
+    "langchain-anthropic",
+    "langchain",
+    "llm-output-parser",
+]
+
+[project.urls]
+Homepage = "https://github.com/KameniAlexNea/create-dataset"
+Repository = "https://github.com/KameniAlexNea/create-dataset"
+"Bug Tracker" = "https://github.com/KameniAlexNea/create-dataset/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=3.0",
+    "pytest-mock>=3.10",
+]
+dev = [
+    "tox",
+    "sphinx",
+    "wheel",
+    "twine",
+    "build",
+    "pickleshare",
+    "black",
+    "flake8",
+    "mypy",
+]
+
+[tool.setuptools]
+packages = ["qageneratorllm"]
+include-package-data = true
+
+[project.scripts]
+qa-generator = "qageneratorllm.generator:main"
