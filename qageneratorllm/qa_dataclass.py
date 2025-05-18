@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class MultipleChoiceOption(BaseModel):
     """Represents a single option in a multiple-choice question."""
+
     option_id: str = Field(
         description="The identifier for this option (e.g., 'A', 'B', 'C', 'D')"
     )
@@ -16,6 +17,7 @@ class MultipleChoiceOption(BaseModel):
 
 class MultipleChoiceQuestion(BaseModel):
     """A question with multiple predefined answer options where one or more options are correct."""
+
     question_text: str = Field(
         description="The complete text of the multiple-choice question"
     )
@@ -43,7 +45,9 @@ class MultipleChoiceQuestion(BaseModel):
     @field_validator("correct_option_ids")
     @classmethod
     def validate_correct_options(cls, correct_ids, values):
-        available_ids = {option.option_id for option in values.data.get("answer_options", [])}
+        available_ids = {
+            option.option_id for option in values.data.get("answer_options", [])
+        }
         for option_id in correct_ids:
             if option_id not in available_ids:
                 raise ValueError(
@@ -54,10 +58,11 @@ class MultipleChoiceQuestion(BaseModel):
 
 class MultipleChoiceQuestionBank(BaseModel):
     """Collection of multiple-choice questions with predefined answer options."""
+
     mcq_questions: List[MultipleChoiceQuestion] = Field(
         description="Collection of all multiple-choice questions in this question bank"
     )
-    
+
     @classmethod
     def example(cls) -> "MultipleChoiceQuestionBank":
         """Returns an example MultipleChoiceQuestionBank with sample questions."""
@@ -72,7 +77,7 @@ class MultipleChoiceQuestionBank(BaseModel):
                         MultipleChoiceOption(option_id="D", option_text="Madrid"),
                     ],
                     correct_option_ids=["B"],
-                    answer_explanation="Paris is the capital and largest city of France."
+                    answer_explanation="Paris is the capital and largest city of France.",
                 ),
                 MultipleChoiceQuestion(
                     question_text="Which of the following are primary colors?",
@@ -83,14 +88,15 @@ class MultipleChoiceQuestionBank(BaseModel):
                         MultipleChoiceOption(option_id="D", option_text="Purple"),
                     ],
                     correct_option_ids=["A", "C"],
-                    answer_explanation="Red and Blue are primary colors. Green is also a primary color in the RGB color model, but not in the traditional RYB color model used in art."
-                )
+                    answer_explanation="Red and Blue are primary colors. Green is also a primary color in the RGB color model, but not in the traditional RYB color model used in art.",
+                ),
             ]
         )
 
 
 class OpenEndedQuestion(BaseModel):
     """A single question requiring a free-form textual answer rather than selection from options."""
+
     question_prompt: str = Field(
         description="The complete text of the question that requires a detailed written response"
     )
@@ -101,10 +107,11 @@ class OpenEndedQuestion(BaseModel):
 
 class OpenEndedQuestionBank(BaseModel):
     """Collection of questions requiring free-form textual responses."""
+
     open_ended_questions: List[OpenEndedQuestion] = Field(
         description="Collection of all open-ended questions with model answers"
     )
-    
+
     @classmethod
     def example(cls) -> "OpenEndedQuestionBank":
         """Returns an example OpenEndedQuestionBank with sample question-answer pairs."""
@@ -112,22 +119,23 @@ class OpenEndedQuestionBank(BaseModel):
             open_ended_questions=[
                 OpenEndedQuestion(
                     question_prompt="What is the capital of France?",
-                    reference_answer="The capital of France is Paris."
+                    reference_answer="The capital of France is Paris.",
                 ),
                 OpenEndedQuestion(
                     question_prompt="Who wrote 'Romeo and Juliet'?",
-                    reference_answer="William Shakespeare wrote 'Romeo and Juliet'."
+                    reference_answer="William Shakespeare wrote 'Romeo and Juliet'.",
                 ),
                 OpenEndedQuestion(
                     question_prompt="What is the chemical symbol for water?",
-                    reference_answer="The chemical formula for water is H₂O, consisting of two hydrogen atoms and one oxygen atom."
-                )
+                    reference_answer="The chemical formula for water is H₂O, consisting of two hydrogen atoms and one oxygen atom.",
+                ),
             ]
         )
 
 
 class ModelName:
     """Constants for default model names used by different LLM providers."""
+
     ANTHROPIC = os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-sonnet-20240229")
     OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5")
     OPENAI = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
@@ -136,6 +144,7 @@ class ModelName:
 
 class LLMProviderType:
     """Constants identifying different LLM service providers."""
+
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"
     OPENAI = "openai"
@@ -144,11 +153,13 @@ class LLMProviderType:
 
 class QuestionType:
     """Constants identifying different types of questions that can be generated."""
+
     MCQ = "mcq"  # Multiple choice questions
-    QA = "qa"    # Open-ended questions
+    QA = "qa"  # Open-ended questions
 
 
 class OutputType:
     """Constants identifying different output formats for LLM responses."""
+
     DATACLASS = "dataclass"  # Return a structured dataclass
-    JSON = "json"            # Return raw JSON
+    JSON = "json"  # Return raw JSON

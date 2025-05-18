@@ -2,10 +2,10 @@ import pytest
 
 from qageneratorllm.qa_dataclass import (
     MultipleChoiceOption,
-    MultipleChoiceQuestionBank,
     MultipleChoiceQuestion,
+    MultipleChoiceQuestionBank,
     OpenEndedQuestion,
-    OpenEndedQuestionBank
+    OpenEndedQuestionBank,
 )
 
 
@@ -24,7 +24,7 @@ def sample_qa_response():
         open_ended_questions=[
             OpenEndedQuestion(
                 question_prompt="When did Ancient Egypt civilization exist?",
-                reference_answer="Ancient Egypt existed from about 3100 BC to 30 BC."
+                reference_answer="Ancient Egypt existed from about 3100 BC to 30 BC.",
             )
         ]
     )
@@ -39,19 +39,17 @@ def sample_mcq_response():
                 answer_options=[
                     MultipleChoiceOption(
                         option_id="A",
-                        option_text="Tombs for pharaohs and their consorts"
+                        option_text="Tombs for pharaohs and their consorts",
                     ),
                     MultipleChoiceOption(
-                        option_id="B", 
-                        option_text="Storage facilities"
+                        option_id="B", option_text="Storage facilities"
                     ),
                     MultipleChoiceOption(
-                        option_id="C", 
-                        option_text="Military fortresses"
+                        option_id="C", option_text="Military fortresses"
                     ),
                 ],
                 correct_option_ids=["A"],
-                answer_explanation="Pyramids were built as tombs for pharaohs and their consorts during the Old and Middle Kingdom periods."
+                answer_explanation="Pyramids were built as tombs for pharaohs and their consorts during the Old and Middle Kingdom periods.",
             )
         ]
     )

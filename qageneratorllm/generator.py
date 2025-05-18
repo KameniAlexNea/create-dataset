@@ -2,36 +2,41 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import List, Tuple, Union, Dict, Any
+from typing import Any, Dict, List, Tuple, Union
 
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
-
-from .qa_dataclass import (
-    LLMProviderType, 
-    MultipleChoiceQuestionBank, 
-    ModelName, 
-    OpenEndedQuestionBank, 
-    QuestionType,
-    OutputType
-)
 from llm_output_parser import parse_json
 
-def get_example_json(example: Union[MultipleChoiceQuestionBank, OpenEndedQuestionBank]) -> str:
+from .qa_dataclass import (
+    LLMProviderType,
+    ModelName,
+    MultipleChoiceQuestionBank,
+    OpenEndedQuestionBank,
+    OutputType,
+    QuestionType,
+)
+
+
+def get_example_json(
+    example: Union[MultipleChoiceQuestionBank, OpenEndedQuestionBank],
+) -> str:
     """Get a JSON string representation of the example dataclass."""
     return json.dumps(example.model_dump(), indent=2)
 
+
 class QuestionGenerator:
     """A class that generates multiple-choice or open-ended questions using various LLM providers."""
+
     def __init__(
         self,
         provider_type: str = LLMProviderType.OLLAMA,
         question_type: str = QuestionType.QA,
         n_questions: int = 5,
         model_name: str = None,
-        output_type: str = OutputType.DATACLASS
+        output_type: str = OutputType.DATACLASS,
     ):
         if provider_type == LLMProviderType.ANTHROPIC:
             self.llm = ChatAnthropic(model=model_name or ModelName.ANTHROPIC)
@@ -46,15 +51,21 @@ class QuestionGenerator:
 
         if question_type == QuestionType.MCQ:
             from .prompts.mcq_prompt import HUMAN, SYSTEM
+
             self.qa_type = MultipleChoiceQuestionBank
         elif question_type == QuestionType.QA:
             from .prompts.qa_prompt import HUMAN, SYSTEM
+
             self.qa_type = OpenEndedQuestionBank
 
-        self.human, self.system, self.format = HUMAN, SYSTEM, get_example_json(self.qa_type.example())
+        self.human, self.system, self.format = (
+            HUMAN,
+            SYSTEM,
+            get_example_json(self.qa_type.example()),
+        )
         self.n_questions = n_questions
         self.output_type = output_type
-        
+
         # Only create structured_llm if using dataclass output
         if self.output_type == OutputType.DATACLASS:
             self.structured_llm = self.llm.with_structured_output(self.qa_type)
@@ -79,8 +90,10 @@ class QuestionGenerator:
         self, prompt: str, source: str = None, n_questions: int = None
     ) -> Union[MultipleChoiceQuestionBank, OpenEndedQuestionBank, Dict[str, Any]]:
         source = source if source else "general knowledge"
-        prepared_messages = self.prepare(prompt, source, n_questions or self.n_questions)
-        
+        prepared_messages = self.prepare(
+            prompt, source, n_questions or self.n_questions
+        )
+
         if self.output_type == OutputType.DATACLASS:
             return self.structured_llm.invoke(prepared_messages)
         else:
@@ -97,7 +110,7 @@ class QuestionGenerator:
             self.prepare(prompt, source, n_questions or self.n_questions)
             for prompt, source in zip(prompts, sources)
         ]
-        
+
         if self.output_type == OutputType.DATACLASS:
             return self.structured_llm.batch(prepared_messages)
         else:
@@ -126,7 +139,13 @@ class QuestionGenerator:
         )
         return self.batch_invoke(contexts, sources, n_questions)
 
-    def save_result(self, result: Union[MultipleChoiceQuestionBank, OpenEndedQuestionBank, Dict[str, Any]], output_path: str):
+    def save_result(
+        self,
+        result: Union[
+            MultipleChoiceQuestionBank, OpenEndedQuestionBank, Dict[str, Any]
+        ],
+        output_path: str,
+    ):
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:
@@ -152,14 +171,16 @@ if __name__ == "__main__":
         "--questions", "-n", type=int, default=5, help="Number of questions to generate"
     )
     parser.add_argument(
-        "--output-type", 
-        choices=[OutputType.DATACLASS, OutputType.JSON], 
+        "--output-type",
+        choices=[OutputType.DATACLASS, OutputType.JSON],
         default=OutputType.DATACLASS,
-        help="Type of output format"
+        help="Type of output format",
     )
 
     args = parser.parse_args()
-    generator = QuestionGenerator(n_questions=args.questions, output_type=args.output_type)
+    generator = QuestionGenerator(
+        n_questions=args.questions, output_type=args.output_type
+    )
 
     if args.batch:
         results = generator.batch_invoke_from_folder(args.input)

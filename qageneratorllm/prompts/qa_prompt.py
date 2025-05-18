@@ -34,4 +34,3 @@ This should be the format of your output:
 
 {FORMAT}
 """
-

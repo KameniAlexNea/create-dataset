@@ -2,10 +2,9 @@ import pytest
 
 from qageneratorllm.qa_dataclass import (
     MultipleChoiceOption,
-    MultipleChoiceQuestionBank,
     MultipleChoiceQuestion,
+    MultipleChoiceQuestionBank,
     OpenEndedQuestion,
-    OpenEndedQuestionBank
 )
 
 
@@ -31,7 +30,9 @@ def test_multiple_choice_question():
 
 
 def test_open_ended_question():
-    qa = OpenEndedQuestion(question_prompt="Test question?", reference_answer="Test answer")
+    qa = OpenEndedQuestion(
+        question_prompt="Test question?", reference_answer="Test answer"
+    )
     assert qa.question_prompt == "Test question?"
     assert qa.reference_answer == "Test answer"
 
@@ -41,7 +42,9 @@ def test_multiple_choice_question_bank():
         mcq_questions=[
             MultipleChoiceQuestion(
                 question_text="Test?",
-                answer_options=[MultipleChoiceOption(option_id="A", option_text="Choice")],
+                answer_options=[
+                    MultipleChoiceOption(option_id="A", option_text="Choice")
+                ],
                 correct_option_ids=["A"],
                 answer_explanation="Test",
             )
