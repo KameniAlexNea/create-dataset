@@ -2,46 +2,73 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
+from llm_output_parser import parse_json
 
-from .qa_dataclass import ChatLLMType, MCQBank, ModelName, QABank, QuestionType
+from .qa_dataclass import (
+    LLMProviderType,
+    ModelName,
+    MultipleChoiceQuestionBank,
+    OpenEndedQuestionBank,
+    OutputType,
+    QuestionType,
+)
 
 
-class ChatLLM:
+def get_example_json(
+    example: Union[MultipleChoiceQuestionBank, OpenEndedQuestionBank],
+) -> str:
+    """Get a JSON string representation of the example dataclass."""
+    return json.dumps(example.model_dump(), indent=2)
+
+
+class QuestionGenerator:
+    """A class that generates multiple-choice or open-ended questions using various LLM providers."""
+
     def __init__(
         self,
-        chat_type: str = ChatLLMType.OLLAMA,
+        provider_type: str = LLMProviderType.OLLAMA,
         question_type: str = QuestionType.QA,
         n_questions: int = 5,
+        model_name: str = None,
+        output_type: str = OutputType.DATACLASS,
     ):
-        if chat_type == ChatLLMType.ANTHROPIC:
-            chat = ChatAnthropic(model=ModelName.ANTHROPIC)
-        elif chat_type == ChatLLMType.OLLAMA:
-            chat = ChatOllama(model=ModelName.OLLAMA)
-        elif chat_type == ChatLLMType.OPENAI:
-            chat = ChatOpenAI(model=ModelName.OPENAI)
-        elif chat_type == ChatLLMType.XAI:
-            chat = ChatXAI(model=ModelName.XAI)
+        if provider_type == LLMProviderType.ANTHROPIC:
+            self.llm = ChatAnthropic(model=model_name or ModelName.ANTHROPIC)
+        elif provider_type == LLMProviderType.OLLAMA:
+            self.llm = ChatOllama(model=model_name or ModelName.OLLAMA)
+        elif provider_type == LLMProviderType.OPENAI:
+            self.llm = ChatOpenAI(model=model_name or ModelName.OPENAI)
+        elif provider_type == LLMProviderType.XAI:
+            self.llm = ChatXAI(model=model_name or ModelName.XAI)
         else:
-            raise ValueError("Invalid chat type")
+            raise ValueError("Invalid LLM provider type")
 
         if question_type == QuestionType.MCQ:
-            from .prompts.mcq_prompt import FORMAT, HUMAN, SYSTEM
+            from .prompts.mcq_prompt import HUMAN, SYSTEM
 
-            self.qa_type = MCQBank
+            self.qa_type = MultipleChoiceQuestionBank
         elif question_type == QuestionType.QA:
-            from .prompts.qa_prompt import FORMAT, HUMAN, SYSTEM
+            from .prompts.qa_prompt import HUMAN, SYSTEM
 
-            self.qa_type = QABank
+            self.qa_type = OpenEndedQuestionBank
 
-        self.human, self.system, self.format = HUMAN, SYSTEM, FORMAT
+        self.human, self.system, self.template_format = (
+            HUMAN,
+            SYSTEM,
+            get_example_json(self.qa_type.example()),
+        )
         self.n_questions = n_questions
-        self.structured_llm = chat.with_structured_output(self.qa_type)
+        self.output_type = output_type
+
+        # Only create structured_llm if using dataclass output
+        if self.output_type == OutputType.DATACLASS:
+            self.structured_llm = self.llm.with_structured_output(self.qa_type)
 
     def prepare(
         self, context: str, source: str, n_questions: int
@@ -54,30 +81,46 @@ class ChatLLM:
                     SOURCE=source,
                     N_QUESTION=n_questions,
                     CONTEXT=context,
-                    FORMAT=self.format,
+                    FORMAT=self.template_format,
                 ),
             ),
         ]
 
     def invoke(
         self, prompt: str, source: str = None, n_questions: int = None
-    ) -> Union[MCQBank, QABank]:
+    ) -> Union[MultipleChoiceQuestionBank, OpenEndedQuestionBank, Dict[str, Any]]:
         source = source if source else "general knowledge"
-        return self.structured_llm.invoke(
-            self.prepare(prompt, source, n_questions or self.n_questions)
+        prepared_messages = self.prepare(
+            prompt, source, n_questions or self.n_questions
         )
+
+        if self.output_type == OutputType.DATACLASS:
+            return self.structured_llm.invoke(prepared_messages)
+        else:
+            # For JSON output, parse the raw response
+            raw_response = self.llm.invoke(prepared_messages)
+            content = parse_json(raw_response.content)
+            return content
 
     def batch_invoke(
         self, prompts: list[str], sources: list[str] = None, n_questions: int = None
     ):
         sources = sources if sources else ["africa history"] * len(prompts)
-        results = self.structured_llm.batch(
-            [
-                self.prepare(prompt, source, n_questions or self.n_questions)
-                for prompt, source in zip(prompts, sources)
-            ]
-        )
-        return results
+        prepared_messages = [
+            self.prepare(prompt, source, n_questions or self.n_questions)
+            for prompt, source in zip(prompts, sources)
+        ]
+
+        if self.output_type == OutputType.DATACLASS:
+            return self.structured_llm.batch(prepared_messages)
+        else:
+            # For JSON output, process each response
+            raw_responses = self.llm.batch(prepared_messages)
+            results = []
+            for response in raw_responses:
+                content = parse_json(response.content)
+                results.append(content)
+            return results
 
     def _get_content(self, file_path: str) -> str:
         with open(file_path, "r") as file:
@@ -96,11 +139,20 @@ class ChatLLM:
         )
         return self.batch_invoke(contexts, sources, n_questions)
 
-    def save_result(self, result: Union[MCQBank, QABank], output_path: str):
+    def save_result(
+        self,
+        result: Union[
+            MultipleChoiceQuestionBank, OpenEndedQuestionBank, Dict[str, Any]
+        ],
+        output_path: str,
+    ):
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(result.model_dump(), f, ensure_ascii=False, indent=2)
+            if self.output_type == OutputType.DATACLASS:
+                json.dump(result.model_dump(), f, ensure_ascii=False, indent=2)
+            else:
+                json.dump(result, f, ensure_ascii=False, indent=2)
 
     def batch_invoke_from_folder(self, folder_path: str, n_questions: int = None):
         folder = Path(folder_path)
@@ -118,18 +170,26 @@ if __name__ == "__main__":
     parser.add_argument(
         "--questions", "-n", type=int, default=5, help="Number of questions to generate"
     )
+    parser.add_argument(
+        "--output-type",
+        choices=[OutputType.DATACLASS, OutputType.JSON],
+        default=OutputType.DATACLASS,
+        help="Type of output format",
+    )
 
     args = parser.parse_args()
-    chat = ChatLLM(n_questions=args.questions)
+    generator = QuestionGenerator(
+        n_questions=args.questions, output_type=args.output_type
+    )
 
     if args.batch:
-        results = chat.batch_invoke_from_folder(args.input)
+        results = generator.batch_invoke_from_folder(args.input)
         if args.output:
             output_dir = Path(args.output)
             output_dir.mkdir(parents=True, exist_ok=True)
             for i, result in enumerate(results):
                 output_path = output_dir / f"qa_{i}.json"
-                chat.save_result(result, str(output_path))
+                generator.save_result(result, str(output_path))
         else:
             print(
                 json.dumps(
@@ -137,8 +197,8 @@ if __name__ == "__main__":
                 )
             )
     else:
-        result = chat.invoke_from_file(args.input)
+        result = generator.invoke_from_file(args.input)
         if args.output:
-            chat.save_result(result, args.output)
+            generator.save_result(result, args.output)
         else:
             print(json.dumps(result.dict(), ensure_ascii=False, indent=2))

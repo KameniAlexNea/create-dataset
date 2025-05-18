@@ -38,21 +38,3 @@ This should be the format of your output:
 
 {FORMAT}
 """
-
-
-FORMAT = """
-{
-    "Questions": [
-        {
-            "Question": "The actual text of the question being asked",
-            "Choices": {
-                "A": "The text content of answer choice A",
-                "B": "The text content of answer choice B"
-                <!-- Add more AnswerChoices as needed -->
-            },
-            "Answer": ["A", "C"],
-            "Explanation": "Factual detailed explanation of why the marked answers are correct."
-        }
-        <!-- Add more Question entries as needed -->
-}
-""".lower()

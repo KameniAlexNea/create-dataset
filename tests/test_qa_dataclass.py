@@ -1,59 +1,63 @@
 import pytest
 
 from qageneratorllm.qa_dataclass import (
-    AnswerChoice,
-    MCQBank,
-    Question,
-    QuestionAnswer,
+    MultipleChoiceOption,
+    MultipleChoiceQuestion,
+    MultipleChoiceQuestionBank,
+    OpenEndedQuestion,
 )
 
 
-def test_answer_choice():
-    choice = AnswerChoice(letter="A", text="Test answer")
-    assert choice.letter == "A"
-    assert choice.text == "Test answer"
+def test_multiple_choice_option():
+    choice = MultipleChoiceOption(option_id="A", option_text="Test answer")
+    assert choice.option_id == "A"
+    assert choice.option_text == "Test answer"
 
 
-def test_mcq_question():
-    question = Question(
-        question="Test question?",
-        choices=[
-            AnswerChoice(letter="A", text="Choice A"),
-            AnswerChoice(letter="B", text="Choice B"),
+def test_multiple_choice_question():
+    question = MultipleChoiceQuestion(
+        question_text="Test question?",
+        answer_options=[
+            MultipleChoiceOption(option_id="A", option_text="Choice A"),
+            MultipleChoiceOption(option_id="B", option_text="Choice B"),
         ],
-        answer=["A"],
-        explanation="Test explanation",
+        correct_option_ids=["A"],
+        answer_explanation="Test explanation",
     )
-    assert question.question == "Test question?"
-    assert len(question.choices) == 2
-    assert question.answer == ["A"]
+    assert question.question_text == "Test question?"
+    assert len(question.answer_options) == 2
+    assert question.correct_option_ids == ["A"]
 
 
-def test_qa_question():
-    qa = QuestionAnswer(question="Test question?", answer="Test answer")
-    assert qa.question == "Test question?"
-    assert qa.answer == "Test answer"
+def test_open_ended_question():
+    qa = OpenEndedQuestion(
+        question_prompt="Test question?", reference_answer="Test answer"
+    )
+    assert qa.question_prompt == "Test question?"
+    assert qa.reference_answer == "Test answer"
 
 
-def test_mcq_bank():
-    bank = MCQBank(
-        questions=[
-            Question(
-                question="Test?",
-                choices=[AnswerChoice(letter="A", text="Choice")],
-                answer=["A"],
-                explanation="Test",
+def test_multiple_choice_question_bank():
+    bank = MultipleChoiceQuestionBank(
+        mcq_questions=[
+            MultipleChoiceQuestion(
+                question_text="Test?",
+                answer_options=[
+                    MultipleChoiceOption(option_id="A", option_text="Choice")
+                ],
+                correct_option_ids=["A"],
+                answer_explanation="Test",
             )
         ]
     )
-    assert len(bank.questions) == 1
+    assert len(bank.mcq_questions) == 1
 
 
 def test_invalid_mcq():
     with pytest.raises(ValueError):
-        Question(
-            question="Test?",
-            choices=[],  # Empty choices
-            answer=["A"],
-            explanation="Test",
+        MultipleChoiceQuestion(
+            question_text="Test?",
+            answer_options=[],  # Empty choices
+            correct_option_ids=["A"],
+            answer_explanation="Test",
         )

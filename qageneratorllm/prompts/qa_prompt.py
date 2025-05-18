@@ -34,15 +34,3 @@ This should be the format of your output:
 
 {FORMAT}
 """
-
-FORMAT = """
-{
-    "Questions": [
-        {
-            "Question": "The actual text of the question being asked",
-            "Answer": "The correct answer to the question"
-        }
-        <!-- Add more Question entries as needed -->
-    ]
-}
-""".lower()
