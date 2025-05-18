@@ -86,8 +86,8 @@ class QuestionGenerator:
         else:
             # For JSON output, parse the raw response
             raw_response = self.llm.invoke(prepared_messages)
-            json_str = parse_json(raw_response.content)
-            return json.loads(json_str)
+            content = parse_json(raw_response.content)
+            return content
 
     def batch_invoke(
         self, prompts: list[str], sources: list[str] = None, n_questions: int = None
@@ -105,8 +105,8 @@ class QuestionGenerator:
             raw_responses = self.llm.batch(prepared_messages)
             results = []
             for response in raw_responses:
-                json_str = parse_json(response.content)
-                results.append(json.loads(json_str))
+                content = parse_json(response.content)
+                results.append(content)
             return results
 
     def _get_content(self, file_path: str) -> str:
