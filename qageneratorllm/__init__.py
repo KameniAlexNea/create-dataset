@@ -1,14 +1,14 @@
-from .generator import ChatLLM, ChatLLMType, ModelName, QuestionType
-from .qa_dataclass import MCQBank, QABank, Question, QuestionAnswer
+from .generator import QuestionGenerator, LLMProviderType, ModelName, QuestionType
+from .qa_dataclass import MultipleChoiceQuestionBank, OpenEndedQuestionBank, MultipleChoiceQuestion, OpenEndedQuestion
 
 __version__ = "0.1.0"
 __all__ = [
-    "ChatLLM",
-    "ChatLLMType",
+    "QuestionGenerator",
+    "LLMProviderType",
     "QuestionType",
     "ModelName",
-    "MCQBank",
-    "QABank",
-    "Question",
-    "QuestionAnswer",
+    "MultipleChoiceQuestionBank",
+    "OpenEndedQuestionBank",
+    "MultipleChoiceQuestion",
+    "OpenEndedQuestion",
 ]

@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
 
 from .qa_dataclass import (
-    ChatLLMType, 
+    LLMProviderType, 
     MultipleChoiceQuestionBank, 
     ModelName, 
     OpenEndedQuestionBank, 
@@ -23,25 +23,26 @@ def get_example_json(example: Union[MultipleChoiceQuestionBank, OpenEndedQuestio
     """Get a JSON string representation of the example dataclass."""
     return json.dumps(example.model_dump(), indent=2)
 
-class ChatLLM:
+class QuestionGenerator:
+    """A class that generates multiple-choice or open-ended questions using various LLM providers."""
     def __init__(
         self,
-        chat_type: str = ChatLLMType.OLLAMA,
+        provider_type: str = LLMProviderType.OLLAMA,
         question_type: str = QuestionType.QA,
         n_questions: int = 5,
         model_name: str = None,
         output_type: str = OutputType.DATACLASS
     ):
-        if chat_type == ChatLLMType.ANTHROPIC:
-            self.chat = ChatAnthropic(model=model_name or ModelName.ANTHROPIC)
-        elif chat_type == ChatLLMType.OLLAMA:
-            self.chat = ChatOllama(model=model_name or ModelName.OLLAMA)
-        elif chat_type == ChatLLMType.OPENAI:
-            self.chat = ChatOpenAI(model=model_name or ModelName.OPENAI)
-        elif chat_type == ChatLLMType.XAI:
-            self.chat = ChatXAI(model=model_name or ModelName.XAI)
+        if provider_type == LLMProviderType.ANTHROPIC:
+            self.llm = ChatAnthropic(model=model_name or ModelName.ANTHROPIC)
+        elif provider_type == LLMProviderType.OLLAMA:
+            self.llm = ChatOllama(model=model_name or ModelName.OLLAMA)
+        elif provider_type == LLMProviderType.OPENAI:
+            self.llm = ChatOpenAI(model=model_name or ModelName.OPENAI)
+        elif provider_type == LLMProviderType.XAI:
+            self.llm = ChatXAI(model=model_name or ModelName.XAI)
         else:
-            raise ValueError("Invalid chat type")
+            raise ValueError("Invalid LLM provider type")
 
         if question_type == QuestionType.MCQ:
             from .prompts.mcq_prompt import HUMAN, SYSTEM
@@ -56,7 +57,7 @@ class ChatLLM:
         
         # Only create structured_llm if using dataclass output
         if self.output_type == OutputType.DATACLASS:
-            self.structured_llm = self.chat.with_structured_output(self.qa_type)
+            self.structured_llm = self.llm.with_structured_output(self.qa_type)
 
     def prepare(
         self, context: str, source: str, n_questions: int
@@ -84,7 +85,7 @@ class ChatLLM:
             return self.structured_llm.invoke(prepared_messages)
         else:
             # For JSON output, parse the raw response
-            raw_response = self.chat.invoke(prepared_messages)
+            raw_response = self.llm.invoke(prepared_messages)
             json_str = parse_json(raw_response.content)
             return json.loads(json_str)
 
@@ -101,7 +102,7 @@ class ChatLLM:
             return self.structured_llm.batch(prepared_messages)
         else:
             # For JSON output, process each response
-            raw_responses = self.chat.batch(prepared_messages)
+            raw_responses = self.llm.batch(prepared_messages)
             results = []
             for response in raw_responses:
                 json_str = parse_json(response.content)
@@ -158,16 +159,16 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    chat = ChatLLM(n_questions=args.questions, output_type=args.output_type)
+    generator = QuestionGenerator(n_questions=args.questions, output_type=args.output_type)
 
     if args.batch:
-        results = chat.batch_invoke_from_folder(args.input)
+        results = generator.batch_invoke_from_folder(args.input)
         if args.output:
             output_dir = Path(args.output)
             output_dir.mkdir(parents=True, exist_ok=True)
             for i, result in enumerate(results):
                 output_path = output_dir / f"qa_{i}.json"
-                chat.save_result(result, str(output_path))
+                generator.save_result(result, str(output_path))
         else:
             print(
                 json.dumps(
@@ -175,8 +176,8 @@ if __name__ == "__main__":
                 )
             )
     else:
-        result = chat.invoke_from_file(args.input)
+        result = generator.invoke_from_file(args.input)
         if args.output:
-            chat.save_result(result, args.output)
+            generator.save_result(result, args.output)
         else:
             print(json.dumps(result.dict(), ensure_ascii=False, indent=2))

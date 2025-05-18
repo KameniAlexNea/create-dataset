@@ -134,7 +134,7 @@ class ModelName:
     XAI = os.getenv("XAI_MODEL_NAME", "grok-beta")
 
 
-class ChatLLMType:
+class LLMProviderType:
     """Constants identifying different LLM service providers."""
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"

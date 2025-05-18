@@ -1,18 +1,18 @@
 import pytest
 
-from qageneratorllm import ChatLLM, ChatLLMType, QuestionType
-from qageneratorllm.qa_dataclass import MCQBank, QABank
+from qageneratorllm import QuestionGenerator, ChatLLMType, QuestionType
+from qageneratorllm.qa_dataclass import MultipleChoiceQuestionBank, OpenEndedQuestionBank
 
 
-def test_chat_llm_initialization():
-    llm = ChatLLM()
-    assert llm.qa_type == QABank
-    assert llm.n_questions == 5
+def test_question_generator_initialization():
+    generator = QuestionGenerator()
+    assert generator.qa_type == OpenEndedQuestionBank
+    assert generator.n_questions == 5
 
 
-def test_chat_llm_invalid_type():
+def test_question_generator_invalid_type():
     with pytest.raises(ValueError):
-        ChatLLM(chat_type="invalid")
+        QuestionGenerator(chat_type="invalid")
 
 
 def test_invoke_qa(monkeypatch, sample_context, sample_qa_response):
@@ -21,18 +21,18 @@ def test_invoke_qa(monkeypatch, sample_context, sample_qa_response):
             return sample_qa_response
 
     def mock_init(self, *args, **kwargs):
-        self.qa_type = QABank
+        self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
         self.human, self.system, self.format = "", "", ""
         self.structured_llm = MockStructuredLLM()
 
-    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
+    monkeypatch.setattr(QuestionGenerator, "__init__", mock_init)
 
-    llm = ChatLLM(question_type=QuestionType.QA)
-    result = llm.invoke(sample_context)
+    generator = QuestionGenerator(question_type=QuestionType.QA)
+    result = generator.invoke(sample_context)
 
-    assert isinstance(result, QABank)
-    assert len(result.questions) == 1
+    assert isinstance(result, OpenEndedQuestionBank)
+    assert len(result.open_ended_questions) == 1
 
 
 def test_invoke_mcq(monkeypatch, sample_context, sample_mcq_response):
@@ -49,12 +49,12 @@ def test_invoke_mcq(monkeypatch, sample_context, sample_mcq_response):
         self.human, self.system, self.format = "", "", ""
         self.structured_llm = MockChat()
 
-    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
+    monkeypatch.setattr(QuestionGenerator, "__init__", mock_init)
 
-    llm = ChatLLM(chat_type=ChatLLMType.OPENAI, question_type=QuestionType.MCQ)
-    result = llm.invoke(sample_context)
+    generator = QuestionGenerator(chat_type=ChatLLMType.OPENAI, question_type=QuestionType.MCQ)
+    result = generator.invoke(sample_context)
 
-    assert isinstance(result, MCQBank)
+    assert isinstance(result, MultipleChoiceQuestionBank)
     assert len(result.questions) == 1
 
 
@@ -64,15 +64,15 @@ def test_invoke_from_file(monkeypatch, temp_text_file):
             pass
 
     def mock_init(self, *args, **kwargs):
-        self.qa_type = QABank
+        self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
         self.human, self.system, self.format = "", "", ""
         self.structured_llm = MockLLM()
 
-    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
+    monkeypatch.setattr(QuestionGenerator, "__init__", mock_init)
 
-    llm = ChatLLM()
-    llm.invoke_from_file(temp_text_file)
+    generator = QuestionGenerator()
+    generator.invoke_from_file(temp_text_file)
 
 
 def test_batch_invoke(monkeypatch, sample_context):
@@ -81,15 +81,15 @@ def test_batch_invoke(monkeypatch, sample_context):
             pass
 
     def mock_init(self, *args, **kwargs):
-        self.qa_type = QABank
+        self.qa_type = OpenEndedQuestionBank
         self.n_questions = 5
         self.human, self.system, self.format = "", "", ""
         self.structured_llm = MockLLM()
 
-    monkeypatch.setattr(ChatLLM, "__init__", mock_init)
+    monkeypatch.setattr(QuestionGenerator, "__init__", mock_init)
 
     # monkeypatch.setattr(ChatLLM, "structured_llm", MockLLM())
 
-    llm = ChatLLM()
+    generator = QuestionGenerator()
     contexts = [sample_context] * 3
-    llm.batch_invoke(contexts)
+    generator.batch_invoke(contexts)
