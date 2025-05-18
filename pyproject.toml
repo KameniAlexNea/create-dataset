@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "qageneratorllm"
@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [
     {name = "Alex Kameni", email = "kamenialexnea@gmail.com"}
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.10,<4.0"
 license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -31,6 +31,7 @@ dependencies = [
     "langchain-anthropic",
     "langchain",
     "llm-output-parser",
+    "node-chunker @ git+https://github.com/KameniAlexNea/llama-index-toc-parser.git",
 ]
 
 [project.urls]
@@ -40,25 +41,86 @@ Repository = "https://github.com/KameniAlexNea/create-dataset"
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.0",
-    "pytest-cov>=3.0",
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
     "pytest-mock>=3.10",
 ]
 dev = [
     "tox",
+    "pytest>=8.0",
     "sphinx",
     "wheel",
     "twine",
     "build",
     "pickleshare",
-    "black",
-    "flake8",
-    "mypy",
+    "black>=23.0,<25.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "codespell>=2.2.0",
+    "pre-commit>=3.0",
+    "pylint>=2.15,<4.0",
+    "ipykernel",
+    "types-PyYAML",
+    "types-requests",
+    "types-setuptools",
+    "tomli",
 ]
-
-[tool.setuptools]
-packages = ["qageneratorllm"]
-include-package-data = true
 
 [project.scripts]
 qa-generator = "qageneratorllm.generator:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qageneratorllm"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311']
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "ANN",
+    "B",
+    "C4",
+    "PT",
+    "RUF",
+]
+ignore = [
+    "ANN101",
+    "ANN102",
+    "E501",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["qageneratorllm"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+plugins = "pydantic.mypy"
+
+[[tool.mypy.overrides]]
+module = "pydantic.*"
+ignore_missing_imports = true
+
+
+[tool.codespell]
+skip = "*.json,*.jsonl,*.csv,*.ipynb,./.git,./.mypy_cache,./.pytest_cache,./.ruff_cache,./build,./dist,./*.egg-info,./venv"
+ignore-words-list = ""
+check-filenames = true
+check-hidden = true
