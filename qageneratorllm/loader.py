@@ -29,7 +29,7 @@ def _split_texts(
 
 
 def chunk_document(
-    document: str,
+    file_path: str,
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
 ):
@@ -37,7 +37,7 @@ def chunk_document(
     Chunk a document into smaller pieces based on the table of contents (TOC).
 
     Args:
-        document (str): Document text to be chunked.
+        file_path (str): Path to the document file to be chunked.
         chunk_size (int): Size of each chunk.
         chunk_overlap (int): Overlap between consecutive chunks.
 
@@ -46,7 +46,7 @@ def chunk_document(
     """
     return [
         _split_texts(chunk, chunk_size, chunk_overlap)
-        for chunk in chunk_document_by_toc_to_text_nodes(str(document))
+        for chunk in chunk_document_by_toc_to_text_nodes(str(file_path))
     ]
 
 
@@ -64,13 +64,24 @@ def sort_chunked_documents(
 
 
 def chunk_documents(
-    documents: list[str],
+    file_paths: list[str],
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
 ):
+    """
+    Chunk multiple documents into smaller pieces.
+    
+    Args:
+        file_paths (list[str]): List of paths to document files.
+        chunk_size (int): Size of each chunk.
+        chunk_overlap (int): Overlap between consecutive chunks.
+        
+    Returns:
+        list[list[list[TextNode]]]: List of chunked documents.
+    """
     return [
-        chunk_document(doc, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-        for doc in documents
+        chunk_document(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        for path in file_paths
     ]
 
 
