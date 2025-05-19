@@ -108,7 +108,7 @@ class QuestionGenerator:
         sources = sources if sources else ["africa history"] * len(prompts)
         prepared_messages = [
             self.prepare(prompt, source, n_questions or self.n_questions)
-            for prompt, source in zip(prompts, sources)
+            for prompt, source in zip(prompts, sources, strict=False)
         ]
 
         if self.output_type == OutputType.DATACLASS:
@@ -135,7 +135,7 @@ class QuestionGenerator:
 
     def batch_invoke_from_files(self, file_paths: list[str], n_questions: int = None):
         contexts, sources = zip(
-            *[self._get_content(file_path) for file_path in file_paths]
+            *[self._get_content(file_path) for file_path in file_paths], strict=False
         )
         return self.batch_invoke(contexts, sources, n_questions)
 

@@ -31,7 +31,7 @@ dependencies = [
     "langchain-anthropic",
     "langchain",
     "llm-output-parser",
-    "node-chunker @ git+https://github.com/KameniAlexNea/llama-index-toc-parser.git",
+    "node-chunker[all]",
 ]
 
 [project.urls]
@@ -47,7 +47,6 @@ test = [
 ]
 dev = [
     "tox",
-    "pytest>=8.0",
     "sphinx",
     "wheel",
     "twine",
@@ -58,13 +57,10 @@ dev = [
     "mypy>=1.0",
     "codespell>=2.2.0",
     "pre-commit>=3.0",
-    "pylint>=2.15,<4.0",
-    "ipykernel",
-    "types-PyYAML",
-    "types-requests",
-    "types-setuptools",
-    "tomli",
+    "safety",
+    "coverage>=5.0",
 ]
+
 
 [project.scripts]
 qa-generator = "qageneratorllm.generator:main"
