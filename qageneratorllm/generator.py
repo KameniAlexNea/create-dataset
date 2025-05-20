@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
 from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
-from langchain_groq import ChatGroq
 from llm_output_parser import parse_json
 
 from .qa_dataclass import (

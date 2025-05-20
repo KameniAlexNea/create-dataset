@@ -133,7 +133,9 @@ def _get_all_descendant_node_ids(
     """
     descendants = set()
     queue = list(node_id_to_children_map.get(start_node_id, []))
-    visited_in_bfs = {start_node_id}  # Keep track of nodes visited in this BFS traversal
+    visited_in_bfs = {
+        start_node_id
+    }  # Keep track of nodes visited in this BFS traversal
 
     while queue:
         current_child_id = queue.pop(0)
@@ -174,9 +176,7 @@ def generate_questions(
     # For each UI ID selected by the user:
     for ui_id in selected_chunk_ui_ids:
         # Find the corresponding chunk dictionary
-        selected_chunk_dict = next(
-            (cd for cd in chunks if cd["id"] == ui_id), None
-        )
+        selected_chunk_dict = next((cd for cd in chunks if cd["id"] == ui_id), None)
         if not selected_chunk_dict:
             continue
 
@@ -197,7 +197,7 @@ def generate_questions(
 
     # Sort by the original UI ID to maintain document order
     relevant_texts_with_ui_id.sort(key=lambda x: x[0])
-    
+
     selected_texts = [text for _, text in relevant_texts_with_ui_id]
 
     if not selected_texts:
@@ -343,7 +343,9 @@ def create_app():
                     [],
                 )
 
-            chunk_data, _ = process_document(file, chunk_size=size, chunk_overlap=overlap)
+            chunk_data, _ = process_document(
+                file, chunk_size=size, chunk_overlap=overlap
+            )
             filtered_chunks = filter_chunks_by_header(chunk_data, header_level)
 
             # Create HTML display of chunks
@@ -361,7 +363,11 @@ def create_app():
                 if chunk.get("header_level"):
                     label += f" (H{chunk['header_level']})"
                 if chunk.get("context_path"):
-                    path_preview = chunk["context_path"].split(" > ")[-1] if " > " in chunk["context_path"] else chunk["context_path"]
+                    path_preview = (
+                        chunk["context_path"].split(" > ")[-1]
+                        if " > " in chunk["context_path"]
+                        else chunk["context_path"]
+                    )
                     label += f": {path_preview}"
                 chunk_choices.append((label, chunk["id"]))
 
