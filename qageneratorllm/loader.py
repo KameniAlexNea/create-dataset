@@ -52,7 +52,7 @@ def chunk_document(
 
 def sort_chunked_documents(
     documents: list[list[TextNode]],
-):
+) -> dict[str, list[TextNode]]:
     results: dict[str, list[TextNode]] = defaultdict(list)
     for doc in documents:
         for chunk in doc:
@@ -70,12 +70,12 @@ def chunk_documents(
 ):
     """
     Chunk multiple documents into smaller pieces.
-    
+
     Args:
         file_paths (list[str]): List of paths to document files.
         chunk_size (int): Size of each chunk.
         chunk_overlap (int): Overlap between consecutive chunks.
-        
+
     Returns:
         list[list[list[TextNode]]]: List of chunked documents.
     """

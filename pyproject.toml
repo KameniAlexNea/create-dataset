@@ -59,6 +59,7 @@ dev = [
     "pre-commit>=3.0",
     "safety",
     "coverage>=5.0",
+    "gradio>=4.0.0",
 ]
 
 
