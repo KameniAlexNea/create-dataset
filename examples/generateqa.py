@@ -8,13 +8,17 @@ from qageneratorllm.loader import chunk_document, sort_chunked_documents
 from qageneratorllm.qa_dataclass import OutputType
 
 
-def process_document(file_path) -> Tuple[List[Dict], List[TextNode]]:
+def process_document(
+    file_path, chunk_size=1000, chunk_overlap=200
+) -> Tuple[List[Dict], List[TextNode]]:
     """Process uploaded document and return chunks with metadata."""
     if file_path is None:
         return [], []
 
     # Chunk the document and organize by relationships
-    chunked_doc = chunk_document(file_path)
+    chunked_doc = chunk_document(
+        file_path, chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
     organized_chunks = sort_chunked_documents(chunked_doc)
 
     # Flatten the nodes but keep relationship info
@@ -238,12 +242,32 @@ def create_app():
                         label="Number of Questions",
                     )
 
+                with gr.Accordion("Chunking Settings", open=False):
+                    chunk_size = gr.Slider(
+                        minimum=200,
+                        maximum=2000,
+                        value=1000,
+                        step=100,
+                        label="Chunk Size",
+                    )
+
+                    chunk_overlap = gr.Slider(
+                        minimum=0,
+                        maximum=500,
+                        value=200,
+                        step=50,
+                        label="Chunk Overlap",
+                    )
+
                 generate_btn = gr.Button("Generate Questions", variant="primary")
                 questions_output = gr.HTML(label="Generated Questions")
 
             with gr.Column(scale=2):
-                chunk_selector = gr.CheckboxGroup(
-                    label="Select Chunks for Question Generation", choices=[]
+                chunk_selector = gr.Dropdown(
+                    label="Select Chunks for Question Generation",
+                    choices=[],
+                    multiselect=True,
+                    info="Select one or more chunks to generate questions from",
                 )
                 chunks_output = gr.HTML(label="Document Chunks")
 
@@ -251,15 +275,15 @@ def create_app():
         chunks_state = gr.State([])
 
         # Event handlers
-        def update_ui(file, header_level):
+        def update_ui(file, header_level, size, overlap):
             if file is None:
                 return (
                     gr.HTML(value="Please upload a document first."),
-                    gr.CheckboxGroup(choices=[]),
+                    gr.Dropdown(choices=[]),
                     [],
                 )
 
-            chunk_data, _ = process_document(file)
+            chunk_data, _ = process_document(file, chunk_size=size, chunk_overlap=overlap)
             filtered_chunks = filter_chunks_by_header(chunk_data, header_level)
 
             # Create HTML display of chunks
@@ -270,32 +294,38 @@ def create_app():
                 html_output += "</div>"
             html_output += "</div>"
 
-            # Update the chunk selector
-            chunk_choices = [
-                (f"Chunk {chunk['id']}", chunk["id"]) for chunk in filtered_chunks
-            ]
+            # Update the chunk selector with more descriptive labels
+            chunk_choices = []
+            for chunk in filtered_chunks:
+                label = f"Chunk {chunk['id']}"
+                if chunk.get("header_level"):
+                    label += f" (H{chunk['header_level']})"
+                if chunk.get("context_path"):
+                    path_preview = chunk["context_path"].split(" > ")[-1] if " > " in chunk["context_path"] else chunk["context_path"]
+                    label += f": {path_preview}"
+                chunk_choices.append((label, chunk["id"]))
 
             return (
                 gr.HTML(value=html_output),
-                gr.CheckboxGroup(choices=chunk_choices),
+                gr.Dropdown(choices=chunk_choices),
                 chunk_data,
             )
 
         process_btn.click(
             fn=update_ui,
-            inputs=[file_input, header_filter],
+            inputs=[file_input, header_filter, chunk_size, chunk_overlap],
             outputs=[chunks_output, chunk_selector, chunks_state],
         )
 
         file_input.upload(
             fn=update_ui,
-            inputs=[file_input, header_filter],
+            inputs=[file_input, header_filter, chunk_size, chunk_overlap],
             outputs=[chunks_output, chunk_selector, chunks_state],
         )
 
         header_filter.change(
             fn=update_ui,
-            inputs=[file_input, header_filter],
+            inputs=[file_input, header_filter, chunk_size, chunk_overlap],
             outputs=[chunks_output, chunk_selector, chunks_state],
         )
 
