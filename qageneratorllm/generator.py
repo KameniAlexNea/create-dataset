@@ -8,6 +8,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
+from langchain_groq import ChatGroq
 from llm_output_parser import parse_json
 
 from .qa_dataclass import (
@@ -46,6 +47,8 @@ class QuestionGenerator:
             self.llm = ChatOpenAI(model=model_name or ModelName.OPENAI)
         elif provider_type == LLMProviderType.XAI:
             self.llm = ChatXAI(model=model_name or ModelName.XAI)
+        elif provider_type == LLMProviderType.GROQ:
+            self.llm = ChatGroq(model=model_name or ModelName.GROQ)
         else:
             raise ValueError("Invalid LLM provider type")
 

@@ -32,6 +32,7 @@ dependencies = [
     "langchain",
     "llm-output-parser",
     "node-chunker[all]",
+    "langchain-groq>=0.3.2",
 ]
 
 [project.urls]
@@ -59,7 +60,7 @@ dev = [
     "pre-commit>=3.0",
     "safety",
     "coverage>=5.0",
-    "gradio>=4.0.0",
+    "gradio>=5.30.0",
 ]
 
 
