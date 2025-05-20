@@ -282,6 +282,7 @@ def create_app():
                             LLMProviderType.OPENAI,
                             LLMProviderType.ANTHROPIC,
                             LLMProviderType.XAI,
+                            LLMProviderType.GROQ,
                         ],
                         value=LLMProviderType.OLLAMA,
                         label="LLM Provider",
