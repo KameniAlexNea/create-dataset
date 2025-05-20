@@ -125,24 +125,83 @@ def format_chunk_for_display(chunk: Dict) -> str:
     return f"{context_display}<p>{text}</p>"
 
 
+def _get_all_descendant_node_ids(
+    start_node_id: str, node_id_to_children_map: Dict[str, List[str]]
+) -> set[str]:
+    """
+    Recursively get all descendant node IDs for a given starting node_id.
+    """
+    descendants = set()
+    queue = list(node_id_to_children_map.get(start_node_id, []))
+    visited_in_bfs = {start_node_id}  # Keep track of nodes visited in this BFS traversal
+
+    while queue:
+        current_child_id = queue.pop(0)
+        if current_child_id in visited_in_bfs:
+            continue
+        visited_in_bfs.add(current_child_id)
+        descendants.add(current_child_id)
+
+        # Add grandchildren to the queue
+        grandchildren = node_id_to_children_map.get(current_child_id, [])
+        for grandchild_id in grandchildren:
+            if grandchild_id not in visited_in_bfs:
+                queue.append(grandchild_id)
+    return descendants
+
+
 def generate_questions(
-    chunks: List[Dict],
-    selected_chunks: List[int],
+    chunks: List[Dict],  # This is the full chunks_state (list of chunk_data dicts)
+    selected_chunk_ui_ids: List[int],  # List of UI integer IDs selected by the user
     question_type: str,
     provider: str,
     num_questions: int,
 ) -> str:
-    """Generate questions for selected chunks."""
-    if not selected_chunks:
+    """Generate questions for selected chunks and all their descendants."""
+    if not selected_chunk_ui_ids:
         return "Please select at least one chunk to generate questions."
 
-    # Get the text from selected chunks
-    selected_texts = []
-    for chunk_id in selected_chunks:
-        for chunk in chunks:
-            if chunk["id"] == chunk_id:
-                selected_texts.append(chunk["text"])
-                break
+    # Build a map from original node_id to its children_ids for efficient lookup
+    node_id_to_children_map: Dict[str, List[str]] = {}
+    for chunk_dict in chunks:
+        current_node_id = chunk_dict["node_id"]
+        if current_node_id not in node_id_to_children_map:
+            node_id_to_children_map[current_node_id] = chunk_dict["children_ids"]
+        # Assuming children_ids are consistent for all splits of the same original node_id
+
+    all_node_ids_for_generation = set()
+
+    # For each UI ID selected by the user:
+    for ui_id in selected_chunk_ui_ids:
+        # Find the corresponding chunk dictionary
+        selected_chunk_dict = next(
+            (cd for cd in chunks if cd["id"] == ui_id), None
+        )
+        if not selected_chunk_dict:
+            continue
+
+        original_node_id = selected_chunk_dict["node_id"]
+        all_node_ids_for_generation.add(original_node_id)
+
+        # Get all descendants of this original_node_id
+        descendants = _get_all_descendant_node_ids(
+            original_node_id, node_id_to_children_map
+        )
+        all_node_ids_for_generation.update(descendants)
+
+    # Collect texts from all relevant nodes (selected + descendants), including all their splits
+    relevant_texts_with_ui_id = []
+    for chunk_dict in chunks:
+        if chunk_dict["node_id"] in all_node_ids_for_generation:
+            relevant_texts_with_ui_id.append((chunk_dict["id"], chunk_dict["text"]))
+
+    # Sort by the original UI ID to maintain document order
+    relevant_texts_with_ui_id.sort(key=lambda x: x[0])
+    
+    selected_texts = [text for _, text in relevant_texts_with_ui_id]
+
+    if not selected_texts:
+        return "No text found for the selected chunks and their descendants."
 
     combined_text = "\n\n".join(selected_texts)
 
