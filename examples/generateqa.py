@@ -138,10 +138,10 @@ def generate_questions(
     question_type: str,
     provider: str,
     num_questions: int,
-) -> str:
+) -> Tuple[str, str]:  # Return (questions_markdown, used_chunks_html)
     """Generate questions for selected chunks and all their descendants."""
     if not selected_chunk_ui_ids:
-        return "Please select at least one chunk to generate questions."
+        return "Please select at least one chunk to generate questions.", "No chunks selected."
 
     # Build a map from original node_id to its children_ids for efficient lookup
     node_id_to_children_map: Dict[str, List[str]] = {}
@@ -181,7 +181,7 @@ def generate_questions(
     selected_texts = [text for _, text in relevant_texts_with_ui_id]
 
     if not selected_texts:
-        return "No text found for the selected chunks and their descendants."
+        return "No text found for the selected chunks and their descendants.", "No relevant text found."
 
     combined_text = "\n\n".join(selected_texts)
 
@@ -196,34 +196,52 @@ def generate_questions(
     # Generate questions
     result = question_generator.invoke(combined_text)
 
-    # Format the result for display
+    # Format the result as Markdown
+    questions_markdown = []
     if question_type == QuestionType.QA:
         questions = result.get("open_ended_questions", [])
-        formatted_output = "<h3>Generated Open-Ended Questions</h3>"
+        questions_markdown.append("### Generated Open-Ended Questions")
+        questions_markdown.append("---")
         for i, q in enumerate(questions, 1):
-            formatted_output += (
-                f"<div class='question'><b>Q{i}:</b> {q['question_prompt']}</div>"
-            )
-            formatted_output += (
-                f"<div class='answer'><b>Answer:</b> {q['reference_answer']}</div><br>"
-            )
+            questions_markdown.append(f"**Q{i}:** {q['question_prompt']}")
+            questions_markdown.append(f"**Answer:** {q['reference_answer']}")
+            questions_markdown.append("---")
     else:
         questions = result.get("mcq_questions", [])
-        formatted_output = "<h3>Generated Multiple-Choice Questions</h3>"
+        questions_markdown.append("### Generated Multiple-Choice Questions")
+        questions_markdown.append("---")
         for i, q in enumerate(questions, 1):
-            formatted_output += (
-                f"<div class='question'><b>Q{i}:</b> {q['question_text']}</div>"
-            )
-            formatted_output += "<div class='options'><b>Options:</b><ul>"
+            questions_markdown.append(f"**Q{i}:** {q['question_text']}")
+            questions_markdown.append("**Options:**")
             for opt in q["answer_options"]:
-                correct = "✓ " if opt["option_id"] in q["correct_option_ids"] else ""
-                formatted_output += (
-                    f"<li>{correct}{opt['option_id']}: {opt['option_text']}</li>"
-                )
-            formatted_output += "</ul></div>"
-            formatted_output += f"<div class='explanation'><b>Explanation:</b> {q['answer_explanation']}</div><br>"
+                correct_indicator = " (Correct)" if opt["option_id"] in q["correct_option_ids"] else ""
+                questions_markdown.append(f"- {opt['option_id']}: {opt['option_text']}{correct_indicator}")
+            questions_markdown.append(f"**Explanation:** {q['answer_explanation']}")
+            questions_markdown.append("---")
+    
+    formatted_questions_output = "\n\n".join(questions_markdown)
 
-    return formatted_output
+    # Format the used chunks for display
+    used_chunks_html_parts = ["<h3>Context Used for Generation:</h3>"]
+    chunks_by_ui_id = {chunk['id']: chunk for chunk in chunks}
+    
+    # Get unique UI IDs from relevant_texts_with_ui_id, maintaining order
+    ordered_used_ui_ids = []
+    seen_ui_ids = set()
+    for ui_id, _ in relevant_texts_with_ui_id:
+        if ui_id not in seen_ui_ids:
+            ordered_used_ui_ids.append(ui_id)
+            seen_ui_ids.add(ui_id)
+
+    for ui_id in ordered_used_ui_ids:
+        chunk_to_display = chunks_by_ui_id.get(ui_id)
+        if chunk_to_display:
+            used_chunks_html_parts.append(format_chunk_for_display(chunk_to_display))
+            used_chunks_html_parts.append("<hr class='chunk-separator'>") # Visual separator
+
+    formatted_used_chunks_html = "".join(used_chunks_html_parts)
+
+    return formatted_questions_output, formatted_used_chunks_html
 
 
 def create_app():
@@ -236,6 +254,7 @@ def create_app():
         .options ul { margin-top: 0; }
         .context-path { font-size: 0.8em; color: #666; margin-bottom: 2px; }
         .chunk { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .chunk-separator { margin: 5px 0; border: none; border-top: 1px dashed #ccc; }
     """,
     ) as app:
         gr.Markdown("# Document Question Generator")
@@ -300,7 +319,9 @@ def create_app():
                     )
 
                 generate_btn = gr.Button("Generate Questions", variant="primary")
-                questions_output = gr.HTML(label="Generated Questions")
+                questions_output = gr.Markdown(label="Generated Questions")
+                used_chunks_display = gr.HTML(label="Context Used for Generation")
+
 
             with gr.Column(scale=2):
                 chunk_selector = gr.Dropdown(
@@ -384,7 +405,7 @@ def create_app():
                 provider_dropdown,
                 num_questions,
             ],
-            outputs=[questions_output],
+            outputs=[questions_output, used_chunks_display],
         )
 
     return app
