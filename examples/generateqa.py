@@ -32,16 +32,28 @@ def process_document(
             header_level = node.metadata.get("level")
             header_tag = f"h{header_level}" if header_level else "p"
 
-            parent_relation = node.relationships.get("4", {})  # "4" typically indicates parent
-            parent_id = parent_relation.get("node_id") if isinstance(parent_relation, dict) else None
+            parent_relation = node.relationships.get(
+                "4", {}
+            )  # "4" typically indicates parent
+            parent_id = (
+                parent_relation.get("node_id")
+                if isinstance(parent_relation, dict)
+                else None
+            )
 
-            children_relation = node.relationships.get("5", [])  # "5" typically indicates children
-            children_ids = [
-                child.get("node_id")
-                for child in children_relation
-                if isinstance(child, dict) and child.get("node_id")
-            ] if isinstance(children_relation, list) else []
-            
+            children_relation = node.relationships.get(
+                "5", []
+            )  # "5" typically indicates children
+            children_ids = (
+                [
+                    child.get("node_id")
+                    for child in children_relation
+                    if isinstance(child, dict) and child.get("node_id")
+                ]
+                if isinstance(children_relation, list)
+                else []
+            )
+
             context_path = node.metadata.get("context", "")
 
             chunk_data.append(
@@ -59,7 +71,7 @@ def process_document(
                 }
             )
             ui_id_counter += 1
-            
+
     return chunk_data, all_nodes
 
 
@@ -95,8 +107,10 @@ def format_chunk_for_display(chunk: Dict) -> str:
     """
     header_level = chunk.get("header_level") or 1
     heading_symbol = "#" * max(1, min(header_level, 6))
-    context_str = f"**Context:** {chunk['context_path']}\n\n" if chunk.get("context_path") else ""
-    chunk_id = chunk['id']
+    context_str = (
+        f"**Context:** {chunk['context_path']}\n\n" if chunk.get("context_path") else ""
+    )
+    chunk_id = chunk["id"]
     return (
         f"{heading_symbol} {chunk.get('title', f'Chunk {chunk_id}')}\n\n"
         f"{context_str}{chunk.get('text', '')}\n"
@@ -139,7 +153,10 @@ def generate_questions(
 ) -> Tuple[str, str]:
     """Generate questions for selected chunks and all their descendants."""
     if not selected_chunk_ui_ids:
-        return "Please select at least one chunk to generate questions.", "No chunks selected."
+        return (
+            "Please select at least one chunk to generate questions.",
+            "No chunks selected.",
+        )
 
     # Build a map from original node_id to its children_ids for efficient lookup
     node_id_to_children_map: Dict[str, List[str]] = {}
@@ -179,7 +196,10 @@ def generate_questions(
     selected_texts = [text for _, text in relevant_texts_with_ui_id]
 
     if not selected_texts:
-        return "No text found for the selected chunks and their descendants.", "No relevant text found."
+        return (
+            "No text found for the selected chunks and their descendants.",
+            "No relevant text found.",
+        )
 
     combined_text = "\n\n".join(selected_texts)
 
@@ -212,17 +232,21 @@ def generate_questions(
             questions_markdown.append(f"**Q{i}:** {q['question_text']}")
             questions_markdown.append("**Options:**")
             for opt in q["answer_options"]:
-                correct_indicator = " (Correct)" if opt["option_id"] in q["correct_option_ids"] else ""
-                questions_markdown.append(f"- {opt['option_id']}: {opt['option_text']}{correct_indicator}")
+                correct_indicator = (
+                    " (Correct)" if opt["option_id"] in q["correct_option_ids"] else ""
+                )
+                questions_markdown.append(
+                    f"- {opt['option_id']}: {opt['option_text']}{correct_indicator}"
+                )
             questions_markdown.append(f"**Explanation:** {q['answer_explanation']}")
             questions_markdown.append("---")
-    
+
     formatted_questions_output = "\n\n".join(questions_markdown)
 
     # Format the used chunks as Markdown instead of HTML
     used_chunks_md_parts = ["### Context Used for Generation:\n"]
     chunks_by_ui_id = {chunk["id"]: chunk for chunk in chunks}
-    
+
     # Get unique UI IDs from relevant_texts_with_ui_id, maintaining order
     ordered_used_ui_ids = []
     seen_ui_ids = set()
@@ -340,7 +364,9 @@ def create_app():
                     [],
                 )
 
-            chunk_data, _ = process_document(file, chunk_size=size, chunk_overlap=overlap)
+            chunk_data, _ = process_document(
+                file, chunk_size=size, chunk_overlap=overlap
+            )
             filtered_chunks = filter_chunks_by_header(chunk_data, header_level)
 
             # Build Markdown output for filtered chunks
