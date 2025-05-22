@@ -21,65 +21,45 @@ def process_document(
     )
     organized_chunks = sort_chunked_documents(chunked_doc)
 
-    # Flatten the nodes but keep relationship info
-    chunked_nodes = []
-    node_map = {}  # Map node_id to index for quick lookup
+    all_nodes: List[TextNode] = []
+    chunk_data: List[Dict] = []
+    ui_id_counter = 0
 
-    # First pass: collect all nodes
-    for node_id, nodes in organized_chunks.items():
-        if nodes:  # Make sure we have at least one node
-            for node in nodes:
-                idx = len(chunked_nodes)
-                chunked_nodes.append(node)
-                node_map[node.node_id] = idx
+    for _, nodes_in_group in organized_chunks.items():
+        for node in nodes_in_group:
+            all_nodes.append(node)
 
-    # Prepare chunks for display with hierarchy info
-    chunk_data = []
-    for i, node in enumerate(chunked_nodes):
-        # Get header level directly from node metadata
-        header_level = node.metadata.get("level")
-        header_tag = f"h{header_level}" if header_level else "p"
+            header_level = node.metadata.get("level")
+            header_tag = f"h{header_level}" if header_level else "p"
 
-        # Get parent information from relationships if available
-        parent_id = None
-        if (
-            node.relationships and "4" in node.relationships
-        ):  # "4" typically indicates parent
-            parent_relation = node.relationships["4"]
-            if isinstance(parent_relation, dict):
-                parent_id = parent_relation.get("node_id")
+            parent_relation = node.relationships.get("4", {})  # "4" typically indicates parent
+            parent_id = parent_relation.get("node_id") if isinstance(parent_relation, dict) else None
 
-        # Get children from relationships if available
-        children_ids = []
-        if (
-            node.relationships and "5" in node.relationships
-        ):  # "5" typically indicates children
-            children_relation = node.relationships["5"]
-            if isinstance(children_relation, list):
-                children_ids = [
-                    child.get("node_id")
-                    for child in children_relation
-                    if isinstance(child, dict)
-                ]
+            children_relation = node.relationships.get("5", [])  # "5" typically indicates children
+            children_ids = [
+                child.get("node_id")
+                for child in children_relation
+                if isinstance(child, dict) and child.get("node_id")
+            ] if isinstance(children_relation, list) else []
+            
+            context_path = node.metadata.get("context", "")
 
-        # Create context path from metadata if available
-        context_path = node.metadata.get("context", "")
-
-        chunk_data.append(
-            {
-                "id": i,
-                "node_id": node.node_id,
-                "text": node.text,
-                "header_level": header_level,
-                "header_tag": header_tag,
-                "parent_id": parent_id,
-                "children_ids": children_ids,
-                "context_path": context_path,
-                "metadata": node.metadata,
-            }
-        )
-
-    return chunk_data, chunked_nodes
+            chunk_data.append(
+                {
+                    "id": ui_id_counter,
+                    "node_id": node.node_id,
+                    "text": node.text,
+                    "header_level": header_level,
+                    "header_tag": header_tag,
+                    "parent_id": parent_id,
+                    "children_ids": children_ids,
+                    "context_path": context_path,
+                    "metadata": node.metadata,
+                }
+            )
+            ui_id_counter += 1
+            
+    return chunk_data, all_nodes
 
 
 def filter_chunks_by_header(chunks: List[Dict], header_level: str) -> List[Dict]:

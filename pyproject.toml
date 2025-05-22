@@ -31,7 +31,7 @@ dependencies = [
     "langchain-anthropic",
     "langchain",
     "llm-output-parser",
-    "node-chunker[all]",
+    "node-chunker",
     "langchain-groq>=0.3.2",
 ]
 
