@@ -55,11 +55,36 @@ def process_document(
                     "children_ids": children_ids,
                     "context_path": context_path,
                     "metadata": node.metadata,
+                    "title": node.metadata.get("title", f"Chunk {ui_id_counter}"),
                 }
             )
             ui_id_counter += 1
             
     return chunk_data, all_nodes
+
+
+def build_chunk_hierarchy(chunks: List[Dict]) -> Dict[str, List[Dict]]:
+    """Build a hierarchical structure of chunks based on parent-child relationships."""
+    # Map from node_id to list of chunk dictionaries
+    hierarchy: Dict[str, List[Dict]] = {}
+    
+    # First, index all chunks by node_id
+    for chunk in chunks:
+        node_id = chunk["node_id"]
+        if node_id not in hierarchy:
+            hierarchy[node_id] = []
+        hierarchy[node_id].append(chunk)
+    
+    # Identify root chunks (those without parents or with parents outside our chunk set)
+    root_chunks = []
+    node_ids = set(hierarchy.keys())
+    
+    for chunk in chunks:
+        parent_id = chunk["parent_id"]
+        if parent_id is None or parent_id not in node_ids:
+            root_chunks.append(chunk)
+    
+    return hierarchy, root_chunks
 
 
 def filter_chunks_by_header(chunks: List[Dict], header_level: str) -> List[Dict]:
@@ -89,20 +114,17 @@ def filter_chunks_by_header(chunks: List[Dict], header_level: str) -> List[Dict]
 
 
 def format_chunk_for_display(chunk: Dict) -> str:
-    """Format a chunk for display in the UI with context information."""
-    header_tag = chunk.get("header_tag", "p")
-    text = chunk.get("text", "")
-    context_path = chunk.get("context_path", "")
-
-    # Format with context path if available
-    if context_path:
-        context_display = f"<div class='context-path'>{context_path}</div>"
-    else:
-        context_display = ""
-
-    if header_tag.startswith("h"):
-        return f"{context_display}<{header_tag}>{text}</{header_tag}>"
-    return f"{context_display}<p>{text}</p>"
+    """
+    Return a Markdown string for the chunk, removing HTML.
+    """
+    header_level = chunk.get("header_level") or 1
+    heading_symbol = "#" * max(1, min(header_level, 6))
+    context_str = f"**Context:** {chunk['context_path']}\n\n" if chunk.get("context_path") else ""
+    chunk_id = chunk['id']
+    return (
+        f"{heading_symbol} {chunk.get('title', f'Chunk {chunk_id}')}\n\n"
+        f"{context_str}{chunk.get('text', '')}\n"
+    )
 
 
 def _get_all_descendant_node_ids(
@@ -133,12 +155,12 @@ def _get_all_descendant_node_ids(
 
 
 def generate_questions(
-    chunks: List[Dict],  # This is the full chunks_state (list of chunk_data dicts)
-    selected_chunk_ui_ids: List[int],  # List of UI integer IDs selected by the user
+    chunks: List[Dict],
+    selected_chunk_ui_ids: List[int],
     question_type: str,
     provider: str,
     num_questions: int,
-) -> Tuple[str, str]:  # Return (questions_markdown, used_chunks_html)
+) -> Tuple[str, str]:
     """Generate questions for selected chunks and all their descendants."""
     if not selected_chunk_ui_ids:
         return "Please select at least one chunk to generate questions.", "No chunks selected."
@@ -221,9 +243,9 @@ def generate_questions(
     
     formatted_questions_output = "\n\n".join(questions_markdown)
 
-    # Format the used chunks for display
-    used_chunks_html_parts = ["<h3>Context Used for Generation:</h3>"]
-    chunks_by_ui_id = {chunk['id']: chunk for chunk in chunks}
+    # Format the used chunks as Markdown instead of HTML
+    used_chunks_md_parts = ["### Context Used for Generation:\n"]
+    chunks_by_ui_id = {chunk["id"]: chunk for chunk in chunks}
     
     # Get unique UI IDs from relevant_texts_with_ui_id, maintaining order
     ordered_used_ui_ids = []
@@ -236,12 +258,44 @@ def generate_questions(
     for ui_id in ordered_used_ui_ids:
         chunk_to_display = chunks_by_ui_id.get(ui_id)
         if chunk_to_display:
-            used_chunks_html_parts.append(format_chunk_for_display(chunk_to_display))
-            used_chunks_html_parts.append("<hr class='chunk-separator'>") # Visual separator
+            used_chunks_md_parts.append(format_chunk_for_display(chunk_to_display))
+            used_chunks_md_parts.append("---\n")
+    formatted_used_chunks_markdown = "\n".join(used_chunks_md_parts)
 
-    formatted_used_chunks_html = "".join(used_chunks_html_parts)
+    return formatted_questions_output, formatted_used_chunks_markdown
 
-    return formatted_questions_output, formatted_used_chunks_html
+
+def visualize_chunks_as_markdown(chunks: List[Dict]) -> str:
+    """
+    Produce a simple Markdown representation of chunks, grouping them by level
+    and showing relevant metadata for illustration.
+    """
+    if not chunks:
+        return "# No chunks to display\n"
+
+    # Sort chunks by header_level (lowest to highest), then by chunk ID
+    sorted_chunks = sorted(chunks, key=lambda c: (c.get("header_level", 999), c["id"]))
+
+    markdown_lines = []
+    for chunk in sorted_chunks:
+        level = chunk.get("header_level", 0)
+        title = chunk.get("title", f"Chunk {chunk['id']}")
+        text = chunk.get("text", "")
+        # Use simple heading approach: if level=1, use '#', if level=2, use '##', etc.
+        heading_symbol = "#" * max(1, min(level, 6))
+        markdown_lines.append(f"{heading_symbol} {title}\n")
+        if chunk.get("context_path"):
+            markdown_lines.append(f"> **Context:** {chunk['context_path']}\n")
+        markdown_lines.append(text + "\n")
+
+    return "\n".join(markdown_lines)
+
+
+def export_chunks_to_markdown(chunks: List[Dict]) -> str:
+    """
+    Gradio event handler to generate markdown text from the chunks in state.
+    """
+    return visualize_chunks_as_markdown(chunks)
 
 
 def create_app():
@@ -320,8 +374,11 @@ def create_app():
 
                 generate_btn = gr.Button("Generate Questions", variant="primary")
                 questions_output = gr.Markdown(label="Generated Questions")
-                used_chunks_display = gr.HTML(label="Context Used for Generation")
+                used_chunks_display = gr.Markdown(label="Context Used for Generation")
 
+                # New UI elements for exporting Markdown
+                export_md_btn = gr.Button("Export Markdown")
+                md_output = gr.Markdown(label="Parsed Chunks in Markdown")
 
             with gr.Column(scale=2):
                 chunk_selector = gr.Dropdown(
@@ -330,7 +387,7 @@ def create_app():
                     multiselect=True,
                     info="Select one or more chunks to generate questions from",
                 )
-                chunks_output = gr.HTML(label="Document Chunks")
+                chunks_output = gr.Markdown(label="Document Chunks")
 
         # State variables to store processed data
         chunks_state = gr.State([])
@@ -339,25 +396,22 @@ def create_app():
         def update_ui(file, header_level, size, overlap):
             if file is None:
                 return (
-                    gr.HTML(value="Please upload a document first."),
+                    gr.Markdown(value="Please upload a document first."),
                     gr.Dropdown(choices=[]),
                     [],
                 )
 
-            chunk_data, _ = process_document(
-                file, chunk_size=size, chunk_overlap=overlap
-            )
+            chunk_data, _ = process_document(file, chunk_size=size, chunk_overlap=overlap)
             filtered_chunks = filter_chunks_by_header(chunk_data, header_level)
 
-            # Create HTML display of chunks
-            html_output = "<div class='chunks'>"
+            # Build Markdown output for filtered chunks
+            chunks_markdown = ["# Document Chunks\n"]
             for chunk in filtered_chunks:
-                html_output += f"<div class='chunk' id='chunk-{chunk['id']}'>"
-                html_output += format_chunk_for_display(chunk)
-                html_output += "</div>"
-            html_output += "</div>"
+                chunks_markdown.append(format_chunk_for_display(chunk))
+                chunks_markdown.append("---\n")
+            markdown_output = "\n".join(chunks_markdown)
 
-            # Update the chunk selector with more descriptive labels
+            # Prepare chunk selector labels
             chunk_choices = []
             for chunk in filtered_chunks:
                 label = f"Chunk {chunk['id']}"
@@ -373,7 +427,7 @@ def create_app():
                 chunk_choices.append((label, chunk["id"]))
 
             return (
-                gr.HTML(value=html_output),
+                gr.Markdown(value=markdown_output),
                 gr.Dropdown(choices=chunk_choices),
                 chunk_data,
             )
@@ -406,6 +460,13 @@ def create_app():
                 num_questions,
             ],
             outputs=[questions_output, used_chunks_display],
+        )
+
+        # New event handler for exporting markdown
+        export_md_btn.click(
+            fn=export_chunks_to_markdown,
+            inputs=[chunks_state],
+            outputs=[md_output],
         )
 
     return app
