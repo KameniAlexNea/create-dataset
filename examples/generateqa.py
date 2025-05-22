@@ -63,30 +63,6 @@ def process_document(
     return chunk_data, all_nodes
 
 
-def build_chunk_hierarchy(chunks: List[Dict]) -> Dict[str, List[Dict]]:
-    """Build a hierarchical structure of chunks based on parent-child relationships."""
-    # Map from node_id to list of chunk dictionaries
-    hierarchy: Dict[str, List[Dict]] = {}
-    
-    # First, index all chunks by node_id
-    for chunk in chunks:
-        node_id = chunk["node_id"]
-        if node_id not in hierarchy:
-            hierarchy[node_id] = []
-        hierarchy[node_id].append(chunk)
-    
-    # Identify root chunks (those without parents or with parents outside our chunk set)
-    root_chunks = []
-    node_ids = set(hierarchy.keys())
-    
-    for chunk in chunks:
-        parent_id = chunk["parent_id"]
-        if parent_id is None or parent_id not in node_ids:
-            root_chunks.append(chunk)
-    
-    return hierarchy, root_chunks
-
-
 def filter_chunks_by_header(chunks: List[Dict], header_level: str) -> List[Dict]:
     """Filter chunks by header level with option to include children."""
     if header_level == "all":
@@ -265,39 +241,6 @@ def generate_questions(
     return formatted_questions_output, formatted_used_chunks_markdown
 
 
-def visualize_chunks_as_markdown(chunks: List[Dict]) -> str:
-    """
-    Produce a simple Markdown representation of chunks, grouping them by level
-    and showing relevant metadata for illustration.
-    """
-    if not chunks:
-        return "# No chunks to display\n"
-
-    # Sort chunks by header_level (lowest to highest), then by chunk ID
-    sorted_chunks = sorted(chunks, key=lambda c: (c.get("header_level", 999), c["id"]))
-
-    markdown_lines = []
-    for chunk in sorted_chunks:
-        level = chunk.get("header_level", 0)
-        title = chunk.get("title", f"Chunk {chunk['id']}")
-        text = chunk.get("text", "")
-        # Use simple heading approach: if level=1, use '#', if level=2, use '##', etc.
-        heading_symbol = "#" * max(1, min(level, 6))
-        markdown_lines.append(f"{heading_symbol} {title}\n")
-        if chunk.get("context_path"):
-            markdown_lines.append(f"> **Context:** {chunk['context_path']}\n")
-        markdown_lines.append(text + "\n")
-
-    return "\n".join(markdown_lines)
-
-
-def export_chunks_to_markdown(chunks: List[Dict]) -> str:
-    """
-    Gradio event handler to generate markdown text from the chunks in state.
-    """
-    return visualize_chunks_as_markdown(chunks)
-
-
 def create_app():
     """Create and configure the Gradio application."""
     with gr.Blocks(
@@ -375,10 +318,6 @@ def create_app():
                 generate_btn = gr.Button("Generate Questions", variant="primary")
                 questions_output = gr.Markdown(label="Generated Questions")
                 used_chunks_display = gr.Markdown(label="Context Used for Generation")
-
-                # New UI elements for exporting Markdown
-                export_md_btn = gr.Button("Export Markdown")
-                md_output = gr.Markdown(label="Parsed Chunks in Markdown")
 
             with gr.Column(scale=2):
                 chunk_selector = gr.Dropdown(
@@ -460,13 +399,6 @@ def create_app():
                 num_questions,
             ],
             outputs=[questions_output, used_chunks_display],
-        )
-
-        # New event handler for exporting markdown
-        export_md_btn.click(
-            fn=export_chunks_to_markdown,
-            inputs=[chunks_state],
-            outputs=[md_output],
         )
 
     return app
