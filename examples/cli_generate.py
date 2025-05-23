@@ -139,127 +139,6 @@ def _get_all_descendant_node_ids(
     return descendants
 
 
-def generate_questions(
-    chunks: List[Dict],
-    selected_chunk_ui_ids: List[int],
-    question_type: str,
-    provider: str,
-    num_questions: int,
-) -> Tuple[str, str]:
-    """Generate questions for selected chunks and all their descendants."""
-    if not selected_chunk_ui_ids:
-        return (
-            "Please select at least one chunk to generate questions.",
-            "No chunks selected.",
-        )
-
-    # Build a map from original node_id to its children_ids for efficient lookup
-    node_id_to_children_map: Dict[str, List[str]] = {}
-    for chunk_dict in chunks:
-        current_node_id = chunk_dict["node_id"]
-        if current_node_id not in node_id_to_children_map:
-            node_id_to_children_map[current_node_id] = chunk_dict["children_ids"]
-        # Assuming children_ids are consistent for all splits of the same original node_id
-
-    all_node_ids_for_generation = set()
-
-    # For each UI ID selected by the user:
-    for ui_id in selected_chunk_ui_ids:
-        # Find the corresponding chunk dictionary
-        selected_chunk_dict = next((cd for cd in chunks if cd["id"] == ui_id), None)
-        if not selected_chunk_dict:
-            continue
-
-        original_node_id = selected_chunk_dict["node_id"]
-        all_node_ids_for_generation.add(original_node_id)
-
-        # Get all descendants of this original_node_id
-        descendants = _get_all_descendant_node_ids(
-            original_node_id, node_id_to_children_map
-        )
-        all_node_ids_for_generation.update(descendants)
-
-    # Collect texts from all relevant nodes (selected + descendants), including all their splits
-    relevant_texts_with_ui_id = []
-    for chunk_dict in chunks:
-        if chunk_dict["node_id"] in all_node_ids_for_generation:
-            relevant_texts_with_ui_id.append((chunk_dict["id"], chunk_dict["text"]))
-
-    # Sort by the original UI ID to maintain document order
-    relevant_texts_with_ui_id.sort(key=lambda x: x[0])
-
-    selected_texts = [text for _, text in relevant_texts_with_ui_id]
-
-    if not selected_texts:
-        return (
-            "No text found for the selected chunks and their descendants.",
-            "No relevant text found.",
-        )
-
-    combined_text = "\n\n".join(selected_texts)
-
-    # Initialize question generator
-    question_generator = QuestionGenerator(
-        provider_type=provider,
-        question_type=question_type,
-        n_questions=num_questions,
-        output_type=OutputType.JSON,
-    )
-
-    # Generate questions
-    result = question_generator.invoke(combined_text)
-
-    # Format the result as Markdown
-    questions_markdown = []
-    if question_type == QuestionType.QA:
-        questions = result.get("open_ended_questions", [])
-        questions_markdown.append("### Generated Open-Ended Questions")
-        questions_markdown.append("---")
-        for i, q in enumerate(questions, 1):
-            questions_markdown.append(f"**Q{i}:** {q['question_prompt']}")
-            questions_markdown.append(f"**Answer:** {q['reference_answer']}")
-            questions_markdown.append("---")
-    else:
-        questions = result.get("mcq_questions", [])
-        questions_markdown.append("### Generated Multiple-Choice Questions")
-        questions_markdown.append("---")
-        for i, q in enumerate(questions, 1):
-            questions_markdown.append(f"**Q{i}:** {q['question_text']}")
-            questions_markdown.append("**Options:**")
-            for opt in q["answer_options"]:
-                correct_indicator = (
-                    " (Correct)" if opt["option_id"] in q["correct_option_ids"] else ""
-                )
-                questions_markdown.append(
-                    f"- {opt['option_id']}: {opt['option_text']}{correct_indicator}"
-                )
-            questions_markdown.append(f"**Explanation:** {q['answer_explanation']}")
-            questions_markdown.append("---")
-
-    formatted_questions_output = "\n\n".join(questions_markdown)
-
-    # Format the used chunks as Markdown instead of HTML
-    used_chunks_md_parts = ["### Context Used for Generation:\n"]
-    chunks_by_ui_id = {chunk["id"]: chunk for chunk in chunks}
-
-    # Get unique UI IDs from relevant_texts_with_ui_id, maintaining order
-    ordered_used_ui_ids = []
-    seen_ui_ids = set()
-    for ui_id, _ in relevant_texts_with_ui_id:
-        if ui_id not in seen_ui_ids:
-            ordered_used_ui_ids.append(ui_id)
-            seen_ui_ids.add(ui_id)
-
-    for ui_id in ordered_used_ui_ids:
-        chunk_to_display = chunks_by_ui_id.get(ui_id)
-        if chunk_to_display:
-            used_chunks_md_parts.append(format_chunk_for_display(chunk_to_display))
-            used_chunks_md_parts.append("---\n")
-    formatted_used_chunks_markdown = "\n".join(used_chunks_md_parts)
-
-    return formatted_questions_output, formatted_used_chunks_markdown
-
-
 def build_h1_hierarchy(all_chunks: List[Dict]) -> Dict[str, Dict]:
     """
     Build a hierarchical structure of H1 sections with all their descendants.
@@ -305,13 +184,31 @@ def build_h1_hierarchy(all_chunks: List[Dict]) -> Dict[str, Dict]:
     return h1_hierarchy
 
 
-def cli_main():
+providers = {
+    "OLLAMA": LLMProviderType.OLLAMA,
+    "OPENAI": LLMProviderType.OPENAI,
+    "ANTHROPIC": LLMProviderType.ANTHROPIC,
+    "GROQ": LLMProviderType.GROQ,
+    "XAI": LLMProviderType.XAI,
+}
+
+
+def get_args():
     parser = argparse.ArgumentParser(description="Generate questions from documents.")
     parser.add_argument(
         "--source", help="Path to folder or single file.", required=True
     )
     parser.add_argument(
-        "--provider", type=str, default="OLLAMA", help="Name of LLM provider."
+        "--provider",
+        type=str,
+        default=LLMProviderType.OLLAMA,
+        help="Name of LLM provider. Options: " + ", ".join(providers.keys()),
+    )
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        default=None,
+        help="Model name to use. Defaults to provider's default.",
     )
     parser.add_argument(
         "--qtype", type=str, default="QA", help="Question type, QA or MCQ."
@@ -322,10 +219,25 @@ def cli_main():
     parser.add_argument(
         "--output_dir", type=str, default=".", help="Folder to save output."
     )
+    parser.add_argument(
+        "--chunk_size",
+        type=int,
+        default=1000,
+        help="Size of text chunks for processing.",
+    )
+    parser.add_argument(
+        "--chunk_overlap",
+        type=int,
+        default=200,
+        help="Overlap between consecutive chunks.",
+    )
     # ...existing code for more CLI arguments...
 
     args = parser.parse_args()
+    return args
 
+
+def cli_main(args):
     # 1. Load and chunk documents
     source_path = args.source
     all_chunks = []
@@ -336,11 +248,17 @@ def cli_main():
         for file_name in os.listdir(source_path):
             file_path = os.path.join(source_path, file_name)
             if os.path.isfile(file_path):
-                chunk_data, _ = process_document(file_path)
+                chunk_data, _ = process_document(
+                    file_path,
+                    chunk_size=args.chunk_size,
+                    chunk_overlap=args.chunk_overlap,
+                )
                 all_chunks.extend(chunk_data)
     elif os.path.isfile(source_path):
         # If it's a single file, process it directly
-        chunk_data, _ = process_document(source_path)
+        chunk_data, _ = process_document(
+            source_path, chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap
+        )
         all_chunks.extend(chunk_data)
     else:
         print(f"Source not found: {source_path}")
@@ -398,6 +316,7 @@ def cli_main():
         provider_type=provider_type,
         question_type=question_type,
         n_questions=args.num,
+        model_name=args.model_name,
         output_type=output_type,
     )
     result = question_generator.invoke(combined_text)
@@ -406,7 +325,7 @@ def cli_main():
     os.makedirs(args.output_dir, exist_ok=True)
     output_file = os.path.join(args.output_dir, "generated_questions.json")
 
-    with open(output_file, "w") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         f.write(
             json.dumps(
                 result.model_dump() if output_type == OutputType.DATACLASS else result,
@@ -417,9 +336,6 @@ def cli_main():
     print(f"Generated questions saved to: {output_file}")
 
 
-def main():
-    cli_main()
-
-
 if __name__ == "__main__":
-    main()
+    args = get_args()
+    cli_main(args)
