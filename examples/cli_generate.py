@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 import random
 from typing import Dict, List, Tuple
@@ -9,6 +10,12 @@ from llama_index.core.schema import NodeRelationship
 from qageneratorllm.generator import LLMProviderType, QuestionGenerator, QuestionType
 from qageneratorllm.loader import chunk_document, sort_chunked_documents
 from qageneratorllm.qa_dataclass import OutputType
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 def process_document(
@@ -261,25 +268,25 @@ def cli_main(args):
         )
         all_chunks.extend(chunk_data)
     else:
-        print(f"Source not found: {source_path}")
+        logger.error(f"Source not found: {source_path}")
         return
 
-    print(f"Total chunks processed: {len(all_chunks)}")
+    logger.info(f"Total chunks processed: {len(all_chunks)}")
 
     # Build H1 hierarchy
     h1_hierarchy = build_h1_hierarchy(all_chunks)
-    print(f"Found {len(h1_hierarchy)} H1 sections:")
+    logger.info(f"Found {len(h1_hierarchy)} H1 sections:")
 
     for h1_node_id, h1_data in h1_hierarchy.items():
         h1_chunk = h1_data["h1_chunk"]
         descendant_count = h1_data["descendant_count"]
         total_chunks = len(h1_data["all_chunks"])
-        print(
+        logger.info(
             f"  - {h1_chunk.get('title', 'Untitled')} ({total_chunks} chunks, {descendant_count} descendants)"
         )
 
     if not h1_hierarchy:
-        print("No H1 headers found. Cannot generate questions.")
+        logger.error("No H1 headers found. Cannot generate questions.")
         return
 
     # Randomly select H1 sections
@@ -287,7 +294,7 @@ def cli_main(args):
     num_to_select = min(len(h1_keys), args.num)
     selected_h1_keys = random.sample(h1_keys, num_to_select)
 
-    print(f"\nRandomly selected {num_to_select} H1 sections:")
+    logger.info(f"\nRandomly selected {num_to_select} H1 sections:")
 
     # Collect all chunks from selected H1 sections
     selected_chunks = []
@@ -296,15 +303,17 @@ def cli_main(args):
         h1_chunk = h1_data["h1_chunk"]
         section_chunks = h1_data["all_chunks"]
         selected_chunks.extend(section_chunks)
-        print(f"  - {h1_chunk.get('title', 'Untitled')} ({len(section_chunks)} chunks)")
+        logger.info(
+            f"  - {h1_chunk.get('title', 'Untitled')} ({len(section_chunks)} chunks)"
+        )
 
     # Sort all selected chunks by ID to maintain document order
     selected_chunks.sort(key=lambda x: x["id"])
     combined_text = "\n\n".join(c["text"] for c in selected_chunks)
 
-    print(f"\nTotal selected chunks: {len(selected_chunks)}")
-    print(f"Combined text length: {len(combined_text)} characters")
-    print("Generating questions...")
+    logger.info(f"\nTotal selected chunks: {len(selected_chunks)}")
+    logger.info(f"Combined text length: {len(combined_text)} characters")
+    logger.info("Generating questions...")
 
     # 5. Generate questions
     provider_type = getattr(
@@ -333,7 +342,7 @@ def cli_main(args):
             )
         )
 
-    print(f"Generated questions saved to: {output_file}")
+    logger.info(f"Generated questions saved to: {output_file}")
 
 
 if __name__ == "__main__":
