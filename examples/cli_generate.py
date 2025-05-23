@@ -1,8 +1,10 @@
-from typing import Dict, List, Tuple
 import argparse
+import json
 import os
 import random
-import json
+from typing import Dict, List, Tuple
+
+from llama_index.core.schema import NodeRelationship
 
 from qageneratorllm.generator import LLMProviderType, QuestionGenerator, QuestionType
 from qageneratorllm.loader import chunk_document, sort_chunked_documents
@@ -33,27 +35,21 @@ def process_document(
             header_level = node.metadata.get("level")
             header_tag = f"h{header_level}" if header_level else "p"
 
-            parent_relation = node.relationships.get(
-                "4", {}
-            )  # "4" typically indicates parent
+            parent_relation = node.relationships.get(NodeRelationship.PARENT, {})
             parent_id = (
-                parent_relation.get("node_id")
-                if isinstance(parent_relation, dict)
-                else None
+                parent_relation.node_id if hasattr(parent_relation, "node_id") else None
             )
 
-            children_relation = node.relationships.get(
-                "5", []
-            )  # "5" typically indicates children
-            children_ids = (
-                [
-                    child.get("node_id")
+            children_relation = node.relationships.get(NodeRelationship.CHILD, [])
+            children_ids = []
+            if isinstance(children_relation, list):
+                children_ids = [
+                    child.node_id
                     for child in children_relation
-                    if isinstance(child, dict) and child.get("node_id")
+                    if hasattr(child, "node_id")
                 ]
-                if isinstance(children_relation, list)
-                else []
-            )
+            elif hasattr(children_relation, "node_id"):
+                children_ids = [children_relation.node_id]
 
             context_path = node.metadata.get("context", "")
 
@@ -264,13 +260,68 @@ def generate_questions(
     return formatted_questions_output, formatted_used_chunks_markdown
 
 
+def build_h1_hierarchy(all_chunks: List[Dict]) -> Dict[str, Dict]:
+    """
+    Build a hierarchical structure of H1 sections with all their descendants.
+    Returns a dict where keys are H1 node_ids and values contain the H1 chunk and all descendants.
+    """
+    # Build node_id → chunk mapping
+    node_id_to_chunk = {chunk["node_id"]: chunk for chunk in all_chunks}
+
+    # Build children mapping
+    node_id_to_children_map = {}
+    for chunk in all_chunks:
+        node_id_to_children_map[chunk["node_id"]] = chunk["children_ids"]
+
+    # Find all H1 chunks
+    h1_chunks = [c for c in all_chunks if c.get("header_level") == 1]
+
+    h1_hierarchy = {}
+
+    for h1_chunk in h1_chunks:
+        h1_node_id = h1_chunk["node_id"]
+
+        # Get all descendants of this H1
+        all_descendants = _get_all_descendant_node_ids(
+            h1_node_id, node_id_to_children_map
+        )
+
+        # Collect all chunks for this H1 section (H1 + descendants)
+        section_chunks = [h1_chunk]
+        for descendant_id in all_descendants:
+            if descendant_id in node_id_to_chunk:
+                section_chunks.append(node_id_to_chunk[descendant_id])
+
+        # Sort chunks by their UI ID to maintain document order
+        section_chunks.sort(key=lambda x: x["id"])
+
+        h1_hierarchy[h1_node_id] = {
+            "h1_chunk": h1_chunk,
+            "all_chunks": section_chunks,
+            "descendant_count": len(all_descendants),
+            "total_text_length": sum(len(chunk["text"]) for chunk in section_chunks),
+        }
+
+    return h1_hierarchy
+
+
 def cli_main():
     parser = argparse.ArgumentParser(description="Generate questions from documents.")
-    parser.add_argument("--source", help="Path to folder or single file.", required=True)
-    parser.add_argument("--provider", type=str, default="OLLAMA", help="Name of LLM provider.")
-    parser.add_argument("--qtype", type=str, default="QA", help="Question type, QA or MCQ.")
-    parser.add_argument("--num", type=int, default=3, help="Number of questions to generate.")
-    parser.add_argument("--output_dir", type=str, default=".", help="Folder to save output.")
+    parser.add_argument(
+        "--source", help="Path to folder or single file.", required=True
+    )
+    parser.add_argument(
+        "--provider", type=str, default="OLLAMA", help="Name of LLM provider."
+    )
+    parser.add_argument(
+        "--qtype", type=str, default="QA", help="Question type, QA or MCQ."
+    )
+    parser.add_argument(
+        "--num", type=int, default=3, help="Number of questions to generate."
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default=".", help="Folder to save output."
+    )
     # ...existing code for more CLI arguments...
 
     args = parser.parse_args()
@@ -295,36 +346,59 @@ def cli_main():
         print(f"Source not found: {source_path}")
         return
 
-    # Build node_id → children map
-    node_id_to_children_map: Dict[str, List[str]] = {}
-    for chunk in all_chunks:
-        node_id_to_children_map[chunk["node_id"]] = chunk["children_ids"]
+    print(f"Total chunks processed: {len(all_chunks)}")
 
-    # Filter chunks by header_level=1
-    h1_chunks = [c for c in all_chunks if c.get("header_level") == 1]
+    # Build H1 hierarchy
+    h1_hierarchy = build_h1_hierarchy(all_chunks)
+    print(f"Found {len(h1_hierarchy)} H1 sections:")
 
-    # Randomly select the specified number from these h1 chunks
-    selected_chunks = random.sample(h1_chunks, min(len(h1_chunks), args.num))
+    for h1_node_id, h1_data in h1_hierarchy.items():
+        h1_chunk = h1_data["h1_chunk"]
+        descendant_count = h1_data["descendant_count"]
+        total_chunks = len(h1_data["all_chunks"])
+        print(
+            f"  - {h1_chunk.get('title', 'Untitled')} ({total_chunks} chunks, {descendant_count} descendants)"
+        )
 
-    # Gather all selected node_ids and their descendants
-    selected_node_ids = set()
-    for chunk in selected_chunks:
-        selected_node_ids.add(chunk["node_id"])
-        descendants = _get_all_descendant_node_ids(chunk["node_id"], node_id_to_children_map)
-        selected_node_ids.update(descendants)
+    if not h1_hierarchy:
+        print("No H1 headers found. Cannot generate questions.")
+        return
 
-    # Collect relevant chunks' text
-    relevant_chunks = [c for c in all_chunks if c["node_id"] in selected_node_ids]
-    combined_text = "\n\n".join(c["text"] for c in relevant_chunks)
+    # Randomly select H1 sections
+    h1_keys = list(h1_hierarchy.keys())
+    num_to_select = min(len(h1_keys), args.num)
+    selected_h1_keys = random.sample(h1_keys, num_to_select)
+
+    print(f"\nRandomly selected {num_to_select} H1 sections:")
+
+    # Collect all chunks from selected H1 sections
+    selected_chunks = []
+    for h1_key in selected_h1_keys:
+        h1_data = h1_hierarchy[h1_key]
+        h1_chunk = h1_data["h1_chunk"]
+        section_chunks = h1_data["all_chunks"]
+        selected_chunks.extend(section_chunks)
+        print(f"  - {h1_chunk.get('title', 'Untitled')} ({len(section_chunks)} chunks)")
+
+    # Sort all selected chunks by ID to maintain document order
+    selected_chunks.sort(key=lambda x: x["id"])
+    combined_text = "\n\n".join(c["text"] for c in selected_chunks)
+
+    print(f"\nTotal selected chunks: {len(selected_chunks)}")
+    print(f"Combined text length: {len(combined_text)} characters")
+    print("Generating questions...")
 
     # 5. Generate questions
-    provider_type = getattr(LLMProviderType, args.provider.upper(), LLMProviderType.OLLAMA)
+    provider_type = getattr(
+        LLMProviderType, args.provider.upper(), LLMProviderType.OLLAMA
+    )
     question_type = getattr(QuestionType, args.qtype.upper(), QuestionType.QA)
+    output_type = OutputType.DATACLASS
     question_generator = QuestionGenerator(
         provider_type=provider_type,
         question_type=question_type,
         n_questions=args.num,
-        output_type=OutputType.DATACLASS,
+        output_type=output_type,
     )
     result = question_generator.invoke(combined_text)
 
@@ -333,7 +407,12 @@ def cli_main():
     output_file = os.path.join(args.output_dir, "generated_questions.json")
 
     with open(output_file, "w") as f:
-        f.write(json.dumps(result.model_dump(), indent=2))
+        f.write(
+            json.dumps(
+                result.model_dump() if output_type == OutputType.DATACLASS else result,
+                indent=2,
+            )
+        )
 
     print(f"Generated questions saved to: {output_file}")
 

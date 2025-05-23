@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
 import gradio as gr
-from llama_index.core.schema import TextNode
+from llama_index.core.schema import NodeRelationship, TextNode
 
 from qageneratorllm.generator import LLMProviderType, QuestionGenerator, QuestionType
 from qageneratorllm.loader import chunk_document, sort_chunked_documents
@@ -32,27 +32,21 @@ def process_document(
             header_level = node.metadata.get("level")
             header_tag = f"h{header_level}" if header_level else "p"
 
-            parent_relation = node.relationships.get(
-                "4", {}
-            )  # "4" typically indicates parent
+            parent_relation = node.relationships.get(NodeRelationship.PARENT, {})
             parent_id = (
-                parent_relation.get("node_id")
-                if isinstance(parent_relation, dict)
-                else None
+                parent_relation.node_id if hasattr(parent_relation, "node_id") else None
             )
 
-            children_relation = node.relationships.get(
-                "5", []
-            )  # "5" typically indicates children
-            children_ids = (
-                [
-                    child.get("node_id")
+            children_relation = node.relationships.get(NodeRelationship.CHILD, [])
+            children_ids = []
+            if isinstance(children_relation, list):
+                children_ids = [
+                    child.node_id
                     for child in children_relation
-                    if isinstance(child, dict) and child.get("node_id")
+                    if hasattr(child, "node_id")
                 ]
-                if isinstance(children_relation, list)
-                else []
-            )
+            elif hasattr(children_relation, "node_id"):
+                children_ids = [children_relation.node_id]
 
             context_path = node.metadata.get("context", "")
 
