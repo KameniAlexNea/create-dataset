@@ -140,6 +140,7 @@ class ModelName:
     OLLAMA = os.getenv("OLLAMA_MODEL_NAME", "qwen2.5")
     OPENAI = os.getenv("OPENAI_MODEL_NAME", "gpt-4o")
     XAI = os.getenv("XAI_MODEL_NAME", "grok-beta")
+    GROQ = os.getenv("GROQ_MODEL_NAME", "llama-3.3-70b-versatile")
 
 
 class LLMProviderType:
@@ -149,6 +150,7 @@ class LLMProviderType:
     OLLAMA = "ollama"
     OPENAI = "openai"
     XAI = "xai"
+    GROQ = "groq"
 
 
 class QuestionType:

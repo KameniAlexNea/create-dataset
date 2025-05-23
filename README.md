@@ -56,6 +56,24 @@ python -m qageneratorllm.generator --input input.txt --output questions.json
 python -m qageneratorllm.generator --input texts_folder/ --output results/ --batch --questions 5 --output-type json
 ```
 
+## Gradio Interface
+
+The package includes a Gradio web interface for interactive question generation:
+
+```bash
+# Launch the Gradio app
+python -m qageneratorllm.gradio_app
+```
+
+With the Gradio interface, you can:
+- Upload documents (.txt, .md, .pdf)
+- View document chunks separated by headers
+- Filter chunks by header level
+- Select specific chunks for question generation
+- Choose question type (MCQ or open-ended)
+- Select LLM provider
+- Generate questions interactively
+
 ## Environment Variables
 
 - `ANTHROPIC_MODEL_NAME`: Anthropic model name (default: claude-3-sonnet-20240229)
