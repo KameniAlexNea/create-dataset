@@ -2794,7 +2794,7 @@ wheels = [
 
 [[package]]
 name = "qageneratorllm"
-version = "0.1.3"
+version = "0.1.3a"
 source = { editable = "." }
 dependencies = [
     { name = "langchain" },
