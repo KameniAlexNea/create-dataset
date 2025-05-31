@@ -38,17 +38,33 @@ class QuestionGenerator:
         n_questions: int = 5,
         model_name: str = None,
         output_type: str = OutputType.DATACLASS,
+        num_ctx: int = 4096,
     ):
         if provider_type == LLMProviderType.ANTHROPIC:
-            self.llm = ChatAnthropic(model=model_name or ModelName.ANTHROPIC)
+            anthropic_kwargs = {"model": model_name or ModelName.ANTHROPIC}
+            if num_ctx is not None:
+                anthropic_kwargs["num_ctx"] = num_ctx
+            self.llm = ChatAnthropic(**anthropic_kwargs)
         elif provider_type == LLMProviderType.OLLAMA:
-            self.llm = ChatOllama(model=model_name or ModelName.OLLAMA)
+            ollama_kwargs = {"model": model_name or ModelName.OLLAMA}
+            if num_ctx is not None:
+                ollama_kwargs["num_ctx"] = num_ctx
+            self.llm = ChatOllama(**ollama_kwargs)
         elif provider_type == LLMProviderType.OPENAI:
-            self.llm = ChatOpenAI(model=model_name or ModelName.OPENAI)
+            openai_kwargs = {"model": model_name or ModelName.OPENAI}
+            if num_ctx is not None:
+                openai_kwargs["num_ctx"] = num_ctx
+            self.llm = ChatOpenAI(**openai_kwargs)
         elif provider_type == LLMProviderType.XAI:
-            self.llm = ChatXAI(model=model_name or ModelName.XAI)
+            xai_kwargs = {"model": model_name or ModelName.XAI}
+            if num_ctx is not None:
+                xai_kwargs["num_ctx"] = num_ctx
+            self.llm = ChatXAI(**xai_kwargs)
         elif provider_type == LLMProviderType.GROQ:
-            self.llm = ChatGroq(model=model_name or ModelName.GROQ)
+            groq_kwargs = {"model": model_name or ModelName.GROQ}
+            if num_ctx is not None:
+                groq_kwargs["num_ctx"] = num_ctx
+            self.llm = ChatGroq(**groq_kwargs)
         else:
             raise ValueError("Invalid LLM provider type")
 
@@ -179,10 +195,16 @@ if __name__ == "__main__":
         default=OutputType.DATACLASS,
         help="Type of output format",
     )
+    parser.add_argument(
+        "--num-ctx",
+        type=int,
+        default=None,
+        help="Context window size (num_ctx) for LLMs qui le supportent (ex: Ollama)",
+    )
 
     args = parser.parse_args()
     generator = QuestionGenerator(
-        n_questions=args.questions, output_type=args.output_type
+        n_questions=args.questions, output_type=args.output_type, num_ctx=args.num_ctx
     )
 
     if args.batch:
